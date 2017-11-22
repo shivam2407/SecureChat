@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Google Protocl Buffers Tutorial
 
 
@@ -29,3 +30,6 @@ Tutorial on how to use Google Protocol Buffers in Python for
  $ ./socket-example-tcp-clt.py 
 ```
 
+=======
+"Secure Chat application" 
+>>>>>>> 5d2c3d7e091c4744fb5abcce51228c9a4f6deb0e
