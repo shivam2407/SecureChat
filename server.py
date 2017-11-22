@@ -24,7 +24,8 @@ rqst = pb_example_pb2.Request()	# create protobuf Request message
 rply = pb_example_pb2.Reply()	# create protobuf Reply message
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
+#reuse the address even if it is in the TIME_WAIT state
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,1)
 sock.bind((IP_ADDR, TCP_PORT))	# bind to port
 
 sock.listen(100)			# listen with one pending connection
@@ -46,11 +47,11 @@ def start_connection(conn,addr):
 
         rply.seqn = rqst.seqn       # use same version number for reply
 
-        if (rqst.type == pb_example_pb2.Request.ECHO): # echo request
-            rply.payload = rqst.payload                # just copy payload
+        #if (rqst.type == pb_example_pb2.Request.ECHO): # echo request
+        #    rply.payload = rqst.payload                # just copy payload
 
-        if (rqst.type == pb_example_pb2.Request.RCMD):  # remote command request
-            rply.payload = rqst.payload
+        #if (rqst.type == pb_example_pb2.Request.RCMD):  # remote command request
+        #    rply.payload = rqst.payload
             ##print 'Executing command: ', rqst.payload
                                                         # execute command and get stdout
             ##rply.payload = subprocess.check_output(rqst.payload, shell='True')
