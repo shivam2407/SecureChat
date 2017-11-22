@@ -4,7 +4,7 @@ import pb_example_pb2 	# import the module created by protobuf
 						# for creating messages
 import argparse
 import os
-from fcrypt import CommonMethod, Encrypt
+from fcrypt import CommonMethod, Encrypt, Decrypt
 from cryptography.hazmat.primitives import hmac
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import serialization
@@ -73,6 +73,12 @@ def sign_in():
     print encrypted_file_name
     sock.send(rqst.SerializeToString())
     data = sock.recv(BUFFER_SIZE)
+    rply.ParseFromString(data)
+    encrypt_r2 = rply.nonce_r2
+    dec = Decrypt()
+    r2 = dec.asyn_decrypt(encrypt_r2,client_private_key)
+
+
 
 
 while 1:	# send 100 requests

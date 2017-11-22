@@ -199,7 +199,7 @@ class Decrypt:
 
 
     @classmethod
-    def asyn_decrypt(cls, message):  # Decrypting message using destination private_key
+    def asyn_decrypt(cls, message,destination_private_key):  # Decrypting message using destination private_key
         try:
             value = destination_private_key.decrypt(
                 message,
