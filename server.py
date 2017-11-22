@@ -7,12 +7,30 @@ import subprocess    	# module for executing commands from python
 						# and retrieving stdout
 from thread import *    # import thread module
 import argparse
+import os
+import base64
+from fcrypt import CommonMethod, Encrypt, Decrypt
+from cryptography.hazmat.primitives import hmac
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.exceptions import *
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-p", "--server-port", type=int,
                     default=5569,
                     help="port number of server to connect to")
+
+parser.add_argument("-pr", "--private-key", type=str,
+                    default='destination_private_key.der',
+                    help="private key of server")
+
+parser.add_argument("-pu", "--public-key", type=str,
+                    default='destination_public_key.der',
+                    help="public key of server")
 
 args = parser.parse_args() 
 
@@ -28,6 +46,40 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.bind((IP_ADDR, TCP_PORT))	# bind to port
 
 sock.listen(100)			# listen with one pending connection
+
+def sign_in(rply,server_private_key,server_public_key):
+    
+    # parse response message
+    rply.ParseFromString(data)
+    #NEED TO IMPLEMENT PROOF OF WORK
+    rply.hash = ec.generate_hash(IP_ADDR+'123')
+    sock.send(rply.SerializeToString())
+    data = sock.recv(BUFFER_SIZE)
+    rply.ParseFromString(data)
+    encrpt = Encrypt()
+    public_key_file_name = args.public_key
+    r1 = os.urandom(16)
+    encrypted_file_name = base64.b64encode(encrpt.asy_encrpt_key(public_key_file_name,server_public_key))
+    encrypted_r1 = encrpt.asy_encrpt_key(r1,server_public_key)
+    rqst.nonce_r1 = base64.b64encode(encrypted_r1)
+    print encrypted_file_name
+    sock.send(rqst.SerializeToString())
+    data = sock.recv(BUFFER_SIZE)
+    rply.ParseFromString(data)
+    encrypt_r2 = bas64.b64decode(rply.nonce_r2)
+    dec = Decrypt()
+    r2 = dec.asyn_decrypt(encrypt_r2,client_private_key)
+    password_hash = ec.generate_hash(password+salt)
+    rqst.nonce_r2 = base64.b64encode(ec.asy_encrpt_key(r2,server_public_key))
+    rqst.hash = base64.b64encode(password_hash)
+    sock.send(rqst.SerializeToString())
+    data = sock.recv(BUFFER_SIZE)
+    rply.ParseFromString(data)
+    recieved_r1 = dec.asyn_decrypt(base64.b64decode(rply.nonce_r1),client_private_key)
+    if(recieved_r1 == r1):
+        print "Seems like the server is pawned closing the connection....."
+    print 'all things executed'
+    return dec.asyn_decrypt(base64.b64decode(rply.secret_key),client_private_key)
 
 def start_connection(conn,addr):
     while 1:                # process one request at a time
@@ -45,9 +97,12 @@ def start_connection(conn,addr):
         rply.version = rqst.version # use same version number for reply
 
         rply.seqn = rqst.seqn       # use same version number for reply
-
-        if (rqst.type == pb_example_pb2.Request.ECHO): # echo request
-            rply.payload = rqst.payload                # just copy payload
+        
+        server_private_key = ec.get_private_key(args.private_key)
+        server_public_key = ec.get_public_key(args.public_key)
+        
+        if (rqst.type == pb_example_pb2.Request.SIGN): # echo request
+            sign_in(rply,server_private_key,server_public_key)   # just copy payload
 
         if (rqst.type == pb_example_pb2.Request.RCMD):  # remote command request
             rply.payload = rqst.payload

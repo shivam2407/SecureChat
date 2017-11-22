@@ -33,6 +33,12 @@ class CommonMethod:
             exit()
 
     @classmethod
+    def generate_hash(cls, message):
+        digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
+        ans = digest.finalize()
+        return ans
+
+    @classmethod
     def get_private_key(cls, file_name):  # This method is fetching private_key
         try:
             if file_name[-3:] == "pem":  # Checking whether the file is of .pem format.
@@ -200,7 +206,7 @@ class Decrypt:
 
     @classmethod
     def asyn_decrypt(cls, message,destination_private_key):  # Decrypting message using destination private_key
-        try:
+        #try:
             value = destination_private_key.decrypt(
                 message,
                 padding.OAEP(
@@ -208,9 +214,9 @@ class Decrypt:
                     algorithm=hashes.SHA256(),
                     label=None))
             return value
-        except Exception:
-            print("Something went wrong with decrypting using RSA2048")
-            exit()
+        #except Exception:
+        #    print("Something went wrong with decrypting using RSA2048")
+        #    exit()
 
     @classmethod
     def decrypt_message(cls, input_dict):  # Decrypting message using symmetric key
