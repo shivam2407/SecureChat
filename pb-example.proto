@@ -1,0 +1,59 @@
+// uses V3.0 of the Protocol Buffer Specification
+syntax = "proto3";
+
+// very basic protobuf protocol to illustrate communication
+// between a client and a server supporting two commands:
+//  echo, and remote command execution
+//
+// By G. Noubir
+
+message Request     // Request message
+{
+
+	int32 version = 1;     // This protocol version number
+	
+	int32 seqn = 2;        // Sequence number
+
+	enum Type {            // Define Request types
+	SIGN = 0;
+	LIST = 1;
+	SEND = 3;
+	LOGOUT = 4;
+
+	}
+
+    Type type = 3;          // Type of this specific message 
+
+    string payload = 4;
+    string username=5;
+    string nonce_r1 = 6;
+    string nonce_r2 = 7;
+    string hash = 8;
+    string secret_key = 9;
+
+}
+
+
+
+message Reply
+{
+	int32 version = 1;     // This protocol version number
+
+	int32 seqn = 2;        // Sequence number
+
+	enum Type {            // Define Request types
+	SIGN = 0;
+	LIST = 1;
+	SEND = 3;
+	LOGOUT = 4;
+
+	}
+
+	Type type = 3;
+
+	string payload = 4;    // The reply payload
+	string nonce_r1 = 5;
+    string nonce_r2 = 6;
+    string hash = 7;
+    string secret_key = 8;
+}
