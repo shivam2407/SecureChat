@@ -19,6 +19,7 @@ message Request     // Request message
 	LIST = 1;
 	SEND = 3;
 	LOGOUT = 4;
+	TALK = 5;
 
 	}
 
@@ -30,6 +31,7 @@ message Request     // Request message
     string nonce_r2 = 7;
     string hash = 8;
     string secret_key = 9;
+    string talk_to_user = 10;
 
 }
 

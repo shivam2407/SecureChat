@@ -43,7 +43,12 @@ rqst = pb_example_pb2.Request()	# create protobuf Request message
 rply = pb_example_pb2.Reply()	# create protobuf Reply message
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+<<<<<<< HEAD
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+=======
+#reuse the address even if it is in the TIME_WAIT state
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,1)
+>>>>>>> 4fb0542be081e561e48d0ec0d03a7ef76a78510e
 sock.bind((IP_ADDR, TCP_PORT))	# bind to port
 
 sock.listen(100)			# listen with one pending connection
@@ -131,6 +136,7 @@ def start_connection(conn,addr):
         rply.version = rqst.version # use same version number for reply
 
         rply.seqn = rqst.seqn       # use same version number for reply
+<<<<<<< HEAD
         ec = CommonMethod()
         server_private_key = ec.get_private_key(args.private_key)
         server_public_key = ec.get_public_key(args.public_key)
@@ -150,6 +156,19 @@ def start_connection(conn,addr):
                 print 'Welcome: '+user_name
                 sign_in(conn,server_private_key,server_public_key)   # just copy payload
         #conn.send(rply.SerializeToString())  # serialize response into string and send
+=======
+
+        #if (rqst.type == pb_example_pb2.Request.ECHO): # echo request
+        #    rply.payload = rqst.payload                # just copy payload
+
+        #if (rqst.type == pb_example_pb2.Request.RCMD):  # remote command request
+        #    rply.payload = rqst.payload
+            ##print 'Executing command: ', rqst.payload
+                                                        # execute command and get stdout
+            ##rply.payload = subprocess.check_output(rqst.payload, shell='True')
+
+        conn.send(rply.SerializeToString())  # serialize response into string and send
+>>>>>>> 4fb0542be081e561e48d0ec0d03a7ef76a78510e
 
 while 1:
     print "Listening again"
