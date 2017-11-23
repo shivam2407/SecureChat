@@ -35,6 +35,7 @@ class CommonMethod:
     @classmethod
     def generate_hash(cls, message):
         digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
+        digest.update(message)
         ans = digest.finalize()
         return ans
 

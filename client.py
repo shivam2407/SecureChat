@@ -17,7 +17,7 @@ from cryptography.exceptions import *
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-p", "--server-port", type=int,
-                    default=5569,
+                    default=9090,
                     help="port number of server to connect to")
 
 parser.add_argument("-pass", "--password", type=str,
@@ -45,7 +45,7 @@ args = parser.parse_args()
 
 IP_ADDR = '127.0.0.1'	# use loopback interface
 TCP_PORT = args.server_port		# TCP port of server
-BUFFER_SIZE = 1024
+BUFFER_SIZE = 4098
 
 rqst = pb_example_pb2.Request()	# create protobuf Request message
 rply = pb_example_pb2.Reply()	# create protobuf Reply message
@@ -59,14 +59,16 @@ client_private_key = ec.get_private_key(args.private_key)
 client_public_key = ec.get_public_key(args.public_key)
 server_public_key = ec.get_public_key(args.server_public_key)
 user_password = args.password
-salt = os.urandom(16)
+print 'The user entered password '+ args.password
+salt = str(123)
 
 def sign_in():
+    print 'inside sign in'
     rqst.type = pb_example_pb2.Request.SIGN
     rqst.payload = args.user
     sock.send(rqst.SerializeToString())
     data = sock.recv(BUFFER_SIZE)
-
+    print 'first meessage sent'
     # parse response message
     rply.ParseFromString(data)
     #NEED TO IMPLEMENT PROOF OF WORK
@@ -76,16 +78,19 @@ def sign_in():
     encrypted_file_name = base64.b64encode(encrpt.asy_encrpt_key(public_key_file_name,server_public_key))
     encrypted_r1 = encrpt.asy_encrpt_key(r1,server_public_key)
     rqst.nonce_r1 = base64.b64encode(encrypted_r1)
-    print encrypted_file_name
+    rqst.payload = encrypted_file_name
+    #print encrypted_file_name
     sock.send(rqst.SerializeToString())
     data = sock.recv(BUFFER_SIZE)
     rply.ParseFromString(data)
-    encrypt_r2 = bas64.b64decode(rply.nonce_r2)
+    encrypt_r2 = base64.b64decode(rply.nonce_r2)
     dec = Decrypt()
     r2 = dec.asyn_decrypt(encrypt_r2,client_private_key)
-    password_hash = ec.generate_hash(password+salt)
-    rqst.nonce_r2 = base64.b64encode(ec.asy_encrpt_key(r2,server_public_key))
-    rqst.hash = base64.b64encode(password_hash)
+    password_hash = ec.generate_hash(user_password+salt)
+    print 'The hash is '+password_hash
+    rqst.nonce_r2 = base64.b64encode(encrpt.asy_encrpt_key(r2,server_public_key))
+    rqst.hash = base64.b64encode(encrpt.asy_encrpt_key(password_hash,server_public_key))
+    print 'sending password hash'
     sock.send(rqst.SerializeToString())
     data = sock.recv(BUFFER_SIZE)
     rply.ParseFromString(data)
@@ -104,8 +109,10 @@ while 1:	# send 100 requests
     rqst.seqn = reqno		# set sequence number
 
 							# get request type from user
-    rcmd = raw_input('Request Type (1: ECHO, 2: RCMD): ')
+    print 'going to sign_in'
     symetric_key = sign_in()
+    rcmd = raw_input('Request Type (1: ECHO, 2: RCMD): ')
+    
 
 
 
@@ -121,6 +128,6 @@ while 1:	# send 100 requests
 
     # print fields of response
     print "received data... ", rply.version, rply.seqn, rply.payload
-
+print 'socket is closed'
 sock.close() # close socket
 
