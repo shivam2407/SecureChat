@@ -56,19 +56,24 @@ client_public_key = ec.get_public_key(args.public_key)
 server_public_key = ec.get_public_key(args.server_public_key)
 
 def encrypt_plaintext(symm_key,plaintext,cipher):
-    print 'Encrypting plaintext...'
     encryptor = cipher.encryptor()
     ciphertext = encryptor.update(plaintext)+ encryptor.finalize()
     ciphertext = base64.b64encode(ciphertext)
     return ciphertext
 
+def decrypt_ciphertext(cipher, ciphertext):
+    decryptor = cipher.decryptor()
+    output_plaintext = decryptor.update(ciphertext) + decryptor.finalize()
+    print 'Decrypting ciphertext...'
+    return output_plaintext
+
 
 def request_to_talk():
 	rqst.type = pb_example_pb2.Request.TALK
 	rqst.username = args.user
-	r1 = os.urandom(16)
-	shared_key = os.urandom(16)
-	iv = os.urandom(16)
+	#r1 = os.urandom(16)
+	shared_key = '1234567890123456'
+	iv = '2345678901234567'
 	cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
 	user_to_talk_to = raw_input("Please input user you would like to talk to")
 	usr = encrypt_plaintext(shared_key,user_to_talk_to,cipher)
@@ -76,9 +81,17 @@ def request_to_talk():
 	#usr1 = base64.b64encode(usr)
 	#unicode_usr = usr.encode('utf-8').strip()
 	rqst.talk_to_user = usr
-	r1 = os.urandom(16)
+	r1 = '3456789012345678'
 	rqst.nonce_r1 = encrypt_plaintext(shared_key,r1,cipher)
 	sock.send(rqst.SerializeToString())
+	data = sock.recv(BUFFER_SIZE)
+	rply.ParseFromString(data)
+	nonce = base64.b64decode(rply.nonce_r1)
+	nonced = decrypt_ciphertext(cipher,nonce)
+	if nonced == r1:
+		rqst.nonce_r2 = rply.nonce_r2
+		sock.send(rqst.SerializeToString())
+
 	
 
 while 1:  # send 100 requests
