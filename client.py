@@ -103,10 +103,6 @@ def request_to_talk():
         data = sock.recv(BUFFER_SIZE)
 
 
-
-
-
-
 while 1:	# send 100 requests
 
     rqst.version = 7		# this is arbitrary for illustration purpose
