@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='pb-example.proto',
   package='',
   syntax='proto3',
-  serialized_pb=_b('\n\x10pb-example.proto\"\xe0\x01\n\x07Request\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0c\n\x04seqn\x18\x02 \x01(\x05\x12\x1b\n\x04type\x18\x03 \x01(\x0e\x32\r.Request.Type\x12\x0f\n\x07payload\x18\x04 \x01(\t\x12\x10\n\x08username\x18\x05 \x01(\t\x12\x10\n\x08nonce_r1\x18\x06 \x01(\t\x12\x10\n\x08nonce_r2\x18\x07 \x01(\t\x12\x0c\n\x04hash\x18\x08 \x01(\t\x12\x12\n\nsecret_key\x18\t \x01(\t\"0\n\x04Type\x12\x08\n\x04SIGN\x10\x00\x12\x08\n\x04LIST\x10\x01\x12\x08\n\x04SEND\x10\x03\x12\n\n\x06LOGOUT\x10\x04\"\xca\x01\n\x05Reply\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0c\n\x04seqn\x18\x02 \x01(\x05\x12\x19\n\x04type\x18\x03 \x01(\x0e\x32\x0b.Reply.Type\x12\x0f\n\x07payload\x18\x04 \x01(\t\x12\x10\n\x08nonce_r1\x18\x05 \x01(\t\x12\x10\n\x08nonce_r2\x18\x06 \x01(\t\x12\x0c\n\x04hash\x18\x07 \x01(\t\x12\x12\n\nsecret_key\x18\x08 \x01(\t\"0\n\x04Type\x12\x08\n\x04SIGN\x10\x00\x12\x08\n\x04LIST\x10\x01\x12\x08\n\x04SEND\x10\x03\x12\n\n\x06LOGOUT\x10\x04\x62\x06proto3')
+  serialized_pb=_b('\n\x10pb-example.proto\"\x80\x02\n\x07Request\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0c\n\x04seqn\x18\x02 \x01(\x05\x12\x1b\n\x04type\x18\x03 \x01(\x0e\x32\r.Request.Type\x12\x0f\n\x07payload\x18\x04 \x01(\t\x12\x10\n\x08username\x18\x05 \x01(\t\x12\x10\n\x08nonce_r1\x18\x06 \x01(\t\x12\x10\n\x08nonce_r2\x18\x07 \x01(\t\x12\x0c\n\x04hash\x18\x08 \x01(\t\x12\x12\n\nsecret_key\x18\t \x01(\t\x12\x14\n\x0ctalk_to_user\x18\n \x01(\t\":\n\x04Type\x12\x08\n\x04SIGN\x10\x00\x12\x08\n\x04LIST\x10\x01\x12\x08\n\x04SEND\x10\x03\x12\n\n\x06LOGOUT\x10\x04\x12\x08\n\x04TALK\x10\x05\"\xe3\x01\n\x05Reply\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0c\n\x04seqn\x18\x02 \x01(\x05\x12\x19\n\x04type\x18\x03 \x01(\x0e\x32\x0b.Reply.Type\x12\x0f\n\x07payload\x18\x04 \x01(\t\x12\x10\n\x08nonce_r1\x18\x05 \x01(\t\x12\x10\n\x08nonce_r2\x18\x06 \x01(\t\x12\x0c\n\x04hash\x18\x07 \x01(\t\x12\x12\n\nsecret_key\x18\x08 \x01(\t\x12\x17\n\x0fsign_in_success\x18\t \x01(\x08\"0\n\x04Type\x12\x08\n\x04SIGN\x10\x00\x12\x08\n\x04LIST\x10\x01\x12\x08\n\x04SEND\x10\x03\x12\n\n\x06LOGOUT\x10\x04\x62\x06proto3')
 )
 
 
@@ -46,11 +46,15 @@ _REQUEST_TYPE = _descriptor.EnumDescriptor(
       name='LOGOUT', index=3, number=4,
       options=None,
       type=None),
+    _descriptor.EnumValueDescriptor(
+      name='TALK', index=4, number=5,
+      options=None,
+      type=None),
   ],
   containing_type=None,
   options=None,
-  serialized_start=197,
-  serialized_end=245,
+  serialized_start=219,
+  serialized_end=277,
 )
 _sym_db.RegisterEnumDescriptor(_REQUEST_TYPE)
 
@@ -79,8 +83,8 @@ _REPLY_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=197,
-  serialized_end=245,
+  serialized_start=219,
+  serialized_end=267,
 )
 _sym_db.RegisterEnumDescriptor(_REPLY_TYPE)
 
@@ -155,6 +159,13 @@ _REQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='talk_to_user', full_name='Request.talk_to_user', index=9,
+      number=10, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -169,7 +180,7 @@ _REQUEST = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=21,
-  serialized_end=245,
+  serialized_end=277,
 )
 
 
@@ -236,6 +247,13 @@ _REPLY = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='sign_in_success', full_name='Reply.sign_in_success', index=8,
+      number=9, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -249,8 +267,8 @@ _REPLY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=248,
-  serialized_end=450,
+  serialized_start=280,
+  serialized_end=507,
 )
 
 _REQUEST.fields_by_name['type'].enum_type = _REQUEST_TYPE
