@@ -46,7 +46,7 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 #reuse the address even if it is in the TIME_WAIT state
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,1)
-sock.bind((IP_ADDR, TCP_PORT))	# bind to port
+sock.bind(('', TCP_PORT))	# bind to port
 
 sock.listen(100)			# listen with one pending connection
 
@@ -94,9 +94,16 @@ def sign_in(conn,server_private_key,server_public_key):
     print 'Client r1 is encrypted '+ encrypt_r1
     rply.nonce_r1 = encrypt_r1
     secret_key = os.urandom(16)
+    salt_key = os.urandom(16)
     rply.secret_key = base64.b64encode(encrpt.asy_encrpt_key(secret_key,client_public_key))
+    rply.key_salt = base64.b64encode(encrpt.asy_encrpt_key(salt_key,client_public_key))
     conn.send(rply.SerializeToString())
     print 'Done sign_in'
+    sql = "INSERT into active_users ('name', 'shared_key', 'public_key', 'key_salt') values (?, ?, ?, ?)"
+    c.execute(sql,(name_of_user,base64.b64encode(secret_key),client_public_key_name,base64.b64encode(salt_key)))
+    sqlconn.commit()
+    sqlconn.close()
+    print 'Inserted the data for user'
 
 
     """public_key_file_name = args.public_key
@@ -123,19 +130,54 @@ def sign_in(conn,server_private_key,server_public_key):
     print 'all things executed'
     return dec.asyn_decrypt(base64.b64decode(rply.secret_key),client_private_key)"""
 
+def logout(user_name,conn,server_private_key,server_public_key):
+    sqlconn = sqlite3.connect("db.sqlite")
+    c = sqlconn.cursor()
+    sql = 'SELECT * from active_users where name = ?'
+    c.execute(sql,(user_name,))
+    r = c.fetchone()
+    shared_key = base64.b64decode(r[1])
+    key_salt = base64.b64decode(r[3])
+    client_public_key_name = r[2]
+    print ' The shared secret key from database is '+shared_key
+    print ' The salt is '+key_salt
+    print 'The encrypted nonce_r1 is '+base64.b64decode(rqst.nonce_r1)
+    client_public_key = CommonMethod().get_public_key(client_public_key_name)
+    recieved_r1 = Decrypt().decrypt_message(base64.b64decode(rqst.nonce_r1),shared_key,key_salt)
+    r2 = os.urandom(16)
+    rply.nonce_r2 = base64.b64encode(Encrypt().encrypt(r2,shared_key,key_salt))
+    rply.nonce_r1 = base64.b64encode(Encrypt().encrypt(recieved_r1,shared_key,key_salt))
+    rply.logout_success = False
+    conn.send(rply.SerializeToString())
+    data = conn.recv(BUFFER_SIZE)
+    rqst.ParseFromString(data)
+    recieved_r2 = Decrypt().decrypt_message(base64.b64decode(rqst.nonce_r2),shared_key,key_salt)
+    sql = 'DELETE from active_users where name = ?'
+    c.execute(sql,(user_name,))
+    sqlconn.commit()
+    sqlconn.close()
+    if recieved_r2 != r2:
+        print 'seems like someone else is trying to logout user'
+    rply.logout_success = True
+    conn.send(rply.SerializeToString())
+    print 'Logout successfull' 
+
+
+            
+
+
 def start_connection(conn,addr):
+    user_name = ""
     while 1:                # process one request at a time
         data = conn.recv(BUFFER_SIZE)
-        if not data: break
+        if not data: 
+            break
 
         print "received data..."
 
         rqst.ParseFromString(data)  # parse message
         print rqst.version, rqst.seqn   # print version and sequence number
-
-        if rqst.version != 7:       # only accept version 7
-            continue
-
+        print 'RQST parsed'
         rply.version = rqst.version # use same version number for reply
 
         rply.seqn = rqst.seqn       # use same version number for reply
@@ -151,12 +193,16 @@ def start_connection(conn,addr):
             user_name = rqst.payload
             user_name = user_name.encode('UTF-8')
             count = c.execute(sql,(user_name,))
+            sqlconn.close()
             if count == 1:
                 print 'Already online seems like you already have a session running'
                 exit()
             else:
                 print 'Welcome: '+user_name
                 sign_in(conn,server_private_key,server_public_key)   # just copy payload
+                print 'Sign in is done'
+        if (rqst.type == pb_example_pb2.Request.LOGOUT):
+            logout(user_name,conn,server_private_key,server_public_key)
         #conn.send(rply.SerializeToString())  # serialize response into string and send
 
         #if (rqst.type == pb_example_pb2.Request.ECHO): # echo request
@@ -168,10 +214,10 @@ def start_connection(conn,addr):
                                                         # execute command and get stdout
             ##rply.payload = subprocess.check_output(rqst.payload, shell='True')
 
-        conn.send(rply.SerializeToString())  # serialize response into string and send
-
 while 1:
     print "Listening again"
     conn, addr = sock.accept()	# accept connection from client
+    print 'ADDR : '+ str(addr[1])
+    print 'CONN : '+ str(conn)
     start_new_thread(start_connection,(conn,addr))
     print 'Connection address:', addr

@@ -24,8 +24,9 @@ field_2 = 'shared_key'
 field_type = 'TEXT'
 field_3 = 'public_key'
 field_type = 'TEXT'
-c.execute('CREATE TABLE {tn} ({f1} {ft}, {f2} {ft}, {f3} {ft})'\
-        .format(tn=table_name1, f1=field_1, f2=field_2, f3=field_3, ft=field_type))
+field_4 = 'key_salt'
+c.execute('CREATE TABLE {tn} ({f1} {ft}, {f2} {ft}, {f3} {ft}, {f4} {ft})'\
+        .format(tn=table_name1, f1=field_1, f2=field_2, f3=field_3, f4=field_4, ft=field_type))
 
 #Table 2
 table_name1 = 'users' 
