@@ -148,11 +148,9 @@ class Encrypt:
             exit()
 
     @classmethod
-    def encrypt(cls, plain_text):  # Encrypting plaint_text using symmetric key
+    def encrypt(cls, plain_text,key,iv):  # Encrypting plaint_text using symmetric key
         # The encryption code goes here. Right now I am simply returning the file
-        try:
-            key = os.urandom(32)  # The key size of 256
-            iv = os.urandom(16)
+        #try:
             cipher = Cipher(
                 algorithms.AES(key),
                 modes.CFB(iv),
@@ -160,14 +158,15 @@ class Encrypt:
             encryptor = cipher.encryptor()
             cipher_text = encryptor.update(plain_text) + encryptor.finalize()
             # Encrypting symmetric key and random number using destination public key.
-            cipher_key = cls.asy_encrpt_key(key, destination_public_key)
-            cipher_random_number = cls.asy_encrpt_key(iv, destination_public_key)
-            cipher_dict["cipher_text"] = cipher_text
-            cipher_dict["symmetric_key"] = cipher_key
-            cipher_dict["random_number"] = cipher_random_number
-        except Exception:
-            print("Something went wrong while encrypting plain text")
-            exit()
+            #cipher_key = cls.asy_encrpt_key(key, destination_public_key)
+            #cipher_random_number = cls.asy_encrpt_key(iv, destination_public_key)
+            #cipher_dict["cipher_text"] = cipher_text
+            #cipher_dict["symmetric_key"] = cipher_key
+            #cipher_dict["random_number"] = cipher_random_number
+            return cipher_text
+        #except Exception:
+        #    print("Something went wrong while encrypting plain text")
+        #    exit()
 
 
 class Decrypt:
@@ -207,7 +206,7 @@ class Decrypt:
 
     @classmethod
     def asyn_decrypt(cls, message,destination_private_key):  # Decrypting message using destination private_key
-        #try:
+        try:
             value = destination_private_key.decrypt(
                 message,
                 padding.OAEP(
@@ -215,23 +214,20 @@ class Decrypt:
                     algorithm=hashes.SHA256(),
                     label=None))
             return value
-        #except Exception:
-        #    print("Something went wrong with decrypting using RSA2048")
-        #    exit()
+        except Exception:
+            print("Something went wrong with decrypting using RSA2048")
+            exit()
 
     @classmethod
-    def decrypt_message(cls, input_dict):  # Decrypting message using symmetric key
-        try:
-            cipher_text = base64.b64decode(input_dict["cipher_text"])
-            symmetric_key = Decrypt.asyn_decrypt(base64.b64decode(input_dict["symmetric_key"]))
-            iv = Decrypt.asyn_decrypt(base64.b64decode(input_dict["random_number"]))
+    def decrypt_message(cls, cipher_text, symmetric_key, iv):  # Decrypting message using symmetric key
+        #try:
             cipher = Cipher(algorithms.AES(symmetric_key), modes.CFB(iv), backend=default_backend())
             decrypter = cipher.decryptor()
             plain_text = decrypter.update(cipher_text) + decrypter.finalize()
             return plain_text
-        except Exception:
-            print("Something went wrong while decrypting the message")
-            exit()
+        #except Exception:
+        #    print("Something went wrong while decrypting the message")
+        #    exit()
 
 if __name__ == '__main__':
     # checking whether the input is correct or not

@@ -20,6 +20,10 @@ parser.add_argument("-p", "--server-port", type=int,
                     default=9090,
                     help="port number of server to connect to")
 
+parser.add_argument("-ip", "--ip-addr", type=str,
+                    default='127.0.0.1',
+                    help="ip address of server")
+
 parser.add_argument("-pass", "--password", type=str,
                     default='any',
                     help="password of user")
@@ -43,7 +47,7 @@ parser.add_argument("-sk", "--server-public-key", type=str,
 args = parser.parse_args() 
 
 
-IP_ADDR = '127.0.0.1'	# use loopback interface
+IP_ADDR = args.ip_addr	# use loopback interface
 TCP_PORT = args.server_port		# TCP port of server
 BUFFER_SIZE = 4098
 
@@ -102,7 +106,40 @@ def sign_in():
     if(recieved_r1 != r1):
         print "Seems like the server is pawned closing the connection....."
     print 'all things executed'
-    return dec.asyn_decrypt(base64.b64decode(rply.secret_key),client_private_key)
+    key = dec.asyn_decrypt(base64.b64decode(rply.secret_key),client_private_key)
+    key_salt = dec.asyn_decrypt(base64.b64decode(rply.key_salt),client_private_key)
+    return (key, key_salt)
+
+def logout(symetric_key,key_salt):
+    rqst.type = pb_example_pb2.Request.LOGOUT
+    r1 = os.urandom(16)
+    rqst.nonce_r1 = base64.b64encode(Encrypt().encrypt(r1,symetric_key,key_salt))
+    print 'The encrypted nonce is '+rqst.nonce_r1
+    sock.send(rqst.SerializeToString())
+    data = sock.recv(BUFFER_SIZE)
+    rply.ParseFromString(data)
+    cipher_r1 = base64.b64decode(rply.nonce_r1)
+    cipher_r2 = base64.b64decode(rply.nonce_r2)
+    recieved_r1 = Decrypt().decrypt_message(cipher_r1,symetric_key,key_salt)
+    recieved_r2 = Decrypt().decrypt_message(cipher_r2,symetric_key,key_salt)
+    rqst.nonce_r2 = base64.b64encode(Encrypt().encrypt(recieved_r2,symetric_key,key_salt))
+    if recieved_r1 != r1:
+        print 'Logout was not successfull'
+        return 102
+    sock.send(rqst.SerializeToString())
+    data = sock.recv(BUFFER_SIZE)
+    rply.ParseFromString(data)
+    cipher_r1 = base64.b64decode(rply.nonce_r1)
+    recieved_r1 = Decrypt().decrypt_message(cipher_r1,symetric_key,key_salt)
+    if recieved_r1 != r1 and not rply.logout_success:
+        print 'Logout was not successfull'
+        return 102
+    
+
+    
+
+
+
 
 def request_to_talk():
     rqst.type = pb_example_pb2.Request.TALK
@@ -128,37 +165,26 @@ def request_to_talk():
         sock.send(rqst.SerializeToString())
         data = sock.recv(BUFFER_SIZE)
 
-
-while 1:	# send 100 requests
-
-    rqst.version = 7		# this is arbitrary for illustration purpose
-    rqst.seqn = reqno		# set sequence number
-
-							# get request type from user
+if __name__ == '__main__':
     print 'going to sign_in'
-    symetric_key = sign_in()
-    rcmd = raw_input('Request Type (1: ECHO, 2: RCMD): ')
+    symetric_key, salt_for_key = sign_in()
+    print 'The shared secret key is '+symetric_key
+    print 'The salt for the kry is '+salt_for_key
+
+    while 1:	# send 100 requests
+
+        rqst.version = 7		# this is arbitrary for illustration purpose
+        rqst.seqn = reqno		# set sequence number
+
+    							# get request type from user
+        
+        rcmd = raw_input('Request Type (1: SIGN-IN, 2: LIST, 3: SEND, 4: LOGOUT, 5: TALK): ')
+        if rcmd == '4':
+            logout(symetric_key,salt_for_key)
+            print 'logout successfull'
+            exit()
+        print "received data... ", rply.version, rply.seqn, rply.payload
     
-    rcmd = raw_input('Request Type (1: SIGN-IN, 2: LIST, 3: SEND, 4: LOGOUT, 5: TALK): ')
-    """if rcmd == 1:
-    	sign_in()
-    if rcmd == 5:
-    request_to_talk()"""
-
-
-
-
-    # serialize message to string
-    sock.send(rqst.SerializeToString())
-
-    # read response
-    data = sock.recv(BUFFER_SIZE)
-
-    # parse response message
-    rply.ParseFromString(data)
-
-    # print fields of response
-    print "received data... ", rply.version, rply.seqn, rply.payload
-print 'socket is closed'
-sock.close() # close socket
+    print 'socket is closed'
+    sock.close() # close socket
 

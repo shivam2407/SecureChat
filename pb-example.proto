@@ -58,5 +58,7 @@ message Reply
     string hash = 7;
     string secret_key = 8;
     bool sign_in_success = 9;
-    
+    string key_salt = 10;
+    bool logout_success = 11;
+
 }
