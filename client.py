@@ -157,7 +157,7 @@ def request_to_talk(data,username):
     cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
     user_to_talk_to = raw_input("Please input user you would like to talk to")
     usr = encrypt_plaintext(shared_key,user_to_talk_to,cipher)
-    print usr
+    print 'Encrypted user is' + usr
     rqst.talk_to_user = usr
     r1 = os.urandom(16)
     rqst.nonce_r1 = encrypt_plaintext(shared_key,r1,cipher)
@@ -169,6 +169,8 @@ def request_to_talk(data,username):
     if nonced == r1:
         rqst.nonce_r2 = rply.nonce_r2
         sock.send(rqst.SerializeToString())
+        data = sock.recv(BUFFER_SIZE)
+        print 'Received data'
 
 
 if __name__ == '__main__':
@@ -187,6 +189,7 @@ if __name__ == '__main__':
         rcmd = raw_input('Request Type (1: SIGN-IN, 2: LIST, 3: SEND, 4: LOGOUT, 5: TALK): ')
         if rcmd == '5':
             username = args.user
+            print 'The username is ' + username
             sqlconn = sqlite3.connect("db.sqlite")
             c = sqlconn.cursor()
             sql = 'SELECT * from active_users where name = ?'

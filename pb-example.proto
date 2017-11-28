@@ -60,5 +60,8 @@ message Reply
     bool sign_in_success = 9;
     string key_salt = 10;
     bool logout_success = 11;
+    string public_key_u1 = 12;
+    string public_key_u2 = 13;
+    string username = 14;
 
 }

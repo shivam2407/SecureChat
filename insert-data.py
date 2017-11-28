@@ -18,6 +18,7 @@ field_2 = 'shared_key'
 field_type = 'TEXT'
 field_3 = 'public_key'
 field_type = 'TEXT'
+
 #c.execute('INSERT INTO  {tn} ({f1}, {f2}, {f3}) VALUES () '.format(tn=table_name1, f1=field_1, f2=field_2, f3=field_3))
 #c.execute('INSERT INTO  {tn} ({f1}, {f2}, {f3}) VALUES () '.format(tn=table_name1, f1=field_1, f2=field_2, f3=field_3))
 
