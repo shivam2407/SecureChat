@@ -106,6 +106,21 @@ def sign_in(conn,server_private_key,server_public_key):
     print 'Inserted the data for user'
 
 
+def encrypt_plaintext(symm_key,plaintext,cipher):
+    encryptor = cipher.encryptor()
+    ciphertext = encryptor.update(plaintext)+ encryptor.finalize()
+    ciphertext = base64.b64encode(ciphertext)
+    return ciphertext
+
+
+def decrypt_ciphertext(cipher, ciphertext):
+    decryptor = cipher.decryptor()
+    output_plaintext = decryptor.update(ciphertext) + decryptor.finalize()
+    print 'Decrypting ciphertext...'
+    return output_plaintext
+
+
+
     """public_key_file_name = args.public_key
     r1 = os.urandom(16)
     encrypted_file_name = base64.b64encode(encrpt.asy_encrpt_key(public_key_file_name,server_public_key))
@@ -163,6 +178,33 @@ def logout(user_name,conn,server_private_key,server_public_key):
     print 'Logout successfull' 
 
 
+def process_talk(conn,rqst):
+    sqlconn = sqlite3.connect("db.sqlite")
+    c = sqlconn.cursor()
+    sql = 'SELECT * from active_users where name = ?'
+    c.execute(sql,(rqst.username,))
+    r = c.fetchone()
+    if r is None:
+        print "Something went wrong."
+    else:
+        username = rqst.username
+        talk_to_user = rqst.talk_to_user
+        shared_key = r[1]
+        rply.username = rqst.username
+        rply.nonce_r1 = rqst.nonce_r1
+        r2 = os.urandom(16)
+        rply.nonce_r2 = encrypt_plaintext(shared_key,r2,cipher)
+        conn.send(rply.SerializeToString())  # serialize response into string and send
+        data = conn.recv(BUFFER_SIZE)
+        if not data:
+            break
+        rqst.ParseFromString(data)
+        nonce = base64.b64decode(rqst.nonce_r2)
+        nonced = decrypt_ciphertext(cipher,nonce)
+        if nonced == r2:
+            su2 = os.urandom(16);
+            
+
             
 
 
@@ -203,6 +245,10 @@ def start_connection(conn,addr):
                 print 'Sign in is done'
         if (rqst.type == pb_example_pb2.Request.LOGOUT):
             logout(user_name,conn,server_private_key,server_public_key)
+
+        if rqst.type == pb_example_pb2.Request.TALK:           
+            process_talk(conn,rqst)
+            
         #conn.send(rply.SerializeToString())  # serialize response into string and send
 
         #if (rqst.type == pb_example_pb2.Request.ECHO): # echo request

@@ -7,6 +7,9 @@ c = conn.cursor()
 user_password = 'any'
 salt = str(123)
 password_hash = CommonMethod().generate_hash(user_password+salt)
+user1_public_key = 'user1_public_key.pem'
+user2_public_key = 'user2_public_key.pem'
+
 #Table 1
 table_name1 = 'active_users' 
 field_1 = 'name'
@@ -26,6 +29,15 @@ field_2 = 'password_hash'
 field_type = 'TEXT'
 sql = "INSERT INTO users ('name', 'password_hash') VALUES (?, ?)"
 c.execute(sql, ('shivam',base64.b64encode(password_hash)))
+
+table_name1 = 'user_public_key'
+field_1 = 'name'
+field_type = 'TEXT'
+field_2 = 'public key'
+field_type = 'TEXT'
+sql = "INSERT INTO user_public_key ('name', 'public_key') VALUES (?, ?)"
+c.execute (sql, ('shivam',user1_public_key))
+c.execute (sql, ('prachi',user2_public_key))
 conn.commit()
 conn.close()
 print 'Data Inserted'

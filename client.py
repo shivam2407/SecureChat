@@ -5,6 +5,7 @@ import pb_example_pb2 	# import the module created by protobuf
 import argparse
 import os
 import base64
+import sqlite3
 from fcrypt import CommonMethod, Encrypt, Decrypt
 from cryptography.hazmat.primitives import hmac
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -134,42 +135,47 @@ def logout(symetric_key,key_salt):
     if recieved_r1 != r1 and not rply.logout_success:
         print 'Logout was not successfull'
         return 102
-    
 
-    
+def encrypt_plaintext(symm_key,plaintext,cipher):
+    encryptor = cipher.encryptor()
+    ciphertext = encryptor.update(plaintext)+ encryptor.finalize()
+    ciphertext = base64.b64encode(ciphertext)
+    return ciphertext
 
+def decrypt_ciphertext(cipher, ciphertext):
+    decryptor = cipher.decryptor()
+    output_plaintext = decryptor.update(ciphertext) + decryptor.finalize()
+    print 'Decrypting ciphertext...'
+    return output_plaintext
 
-
-
-def request_to_talk():
+   
+def request_to_talk(data,username):
+    shared_key = base64.b64decode(data[1])
+    iv = base64.b64decode(data[3])
     rqst.type = pb_example_pb2.Request.TALK
-    rqst.username = args.user
-    encrypted_msg = Encrypt()
-    # get shared key from sign-in
-
+    rqst.username = username
+    cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
     user_to_talk_to = raw_input("Please input user you would like to talk to")
-    rqst.talk_to_user = encrypted_msg.asy_encrpt_key(user_to_talk_to,shared_key) 
+    usr = encrypt_plaintext(shared_key,user_to_talk_to,cipher)
+    print usr
+    rqst.talk_to_user = usr
     r1 = os.urandom(16)
-    rqst.nonce_r1 = encrypted_msg.asy_encrpt_key(r1, shared_key) 
+    rqst.nonce_r1 = encrypt_plaintext(shared_key,r1,cipher)
     sock.send(rqst.SerializeToString())
     data = sock.recv(BUFFER_SIZE)
     rply.ParseFromString(data)
-    encrypted_r1 = rply.nonce_r1
-    encrypted_r2 = rply.nonce_r2
-    decrypted_msg = Decrypt()
-    r1d = decrypted_msg.asyn_decrypt(encrypted_r1,shared_key)
-    r2d = decrypted_msg.asyn_decrypt(encrypted_r2,shared_key)
-    if (r1d == r1):
-        rqst.type = pb_example_pb2.Request.SEND
-        rqst.nonce_r2 = encrypted_r2
+    nonce = base64.b64decode(rply.nonce_r1)
+    nonced = decrypt_ciphertext(cipher,nonce)
+    if nonced == r1:
+        rqst.nonce_r2 = rply.nonce_r2
         sock.send(rqst.SerializeToString())
-        data = sock.recv(BUFFER_SIZE)
+
 
 if __name__ == '__main__':
     print 'going to sign_in'
     symetric_key, salt_for_key = sign_in()
     print 'The shared secret key is '+symetric_key
-    print 'The salt for the kry is '+salt_for_key
+    print 'The salt for the key is '+salt_for_key
 
     while 1:	# send 100 requests
 
@@ -179,6 +185,27 @@ if __name__ == '__main__':
     							# get request type from user
         
         rcmd = raw_input('Request Type (1: SIGN-IN, 2: LIST, 3: SEND, 4: LOGOUT, 5: TALK): ')
+        if rcmd == '5':
+            username = args.user
+            sqlconn = sqlite3.connect("db.sqlite")
+            c = sqlconn.cursor()
+            sql = 'SELECT * from active_users where name = ?'
+            c.execute(sql,(username,))
+            data = c.fetchone()
+            if data is None:
+                print "User %s is not signed-in. Please sign in to talk." %username
+            else:
+                sqlconn = sqlite3.connect("db.sqlite")
+                c = sqlconn.cursor()
+                sql = 'SELECT public_key from user_public_key where name = ?'
+                c.execute(sql,(username,))
+                key = c.fetchone()
+                if key is None:
+                    print "No record exits"
+                else:
+                    print key
+                    request_to_talk(data,username)
+
         if rcmd == '4':
             logout(symetric_key,salt_for_key)
             print 'logout successfull'

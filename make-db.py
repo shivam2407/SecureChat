@@ -37,15 +37,19 @@ field_type = 'TEXT'
 c.execute('CREATE TABLE {tn} ({f1} {ft}, {f2} {ft})'\
         .format(tn=table_name1, f1=field_1, f2=field_2, f3=field_3, ft=field_type))
 
+
+
 #Table 3
-"""table_name1 = 'users_events' 
-field_1 = 'event_id'
+table_name1 = 'user_public_key' 
+field_1 = 'name'
 field_type = 'TEXT'
-field_2 = 'user_id'
+field_2 = 'public_key'
 field_type = 'TEXT'
 c.execute('CREATE TABLE {tn} ({f1} {ft}, {f2} {ft})'\
         .format(tn=table_name1, f1=field_1, f2=field_2, ft=field_type))
 
+
+"""
 #Table 4
 table_name1 = 'users_friend' 
 field_1 = 'user_id'
