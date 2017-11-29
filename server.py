@@ -126,29 +126,19 @@ def sign_in(conn,server_private_key,server_public_key):
     print 'Inserted the data for user'
 
 
-    """public_key_file_name = args.public_key
-    r1 = os.urandom(16)
-    encrypted_file_name = base64.b64encode(encrpt.asy_encrpt_key(public_key_file_name,server_public_key))
-    encrypted_r1 = encrpt.asy_encrpt_key(r1,server_public_key)
-    rqst.nonce_r1 = base64.b64encode(encrypted_r1)
-    print encrypted_file_name
-    sock.send(rqst.SerializeToString())
-    data = sock.recv(BUFFER_SIZE)
-    rply.ParseFromString(data)
-    encrypt_r2 = bas64.b64decode(rply.nonce_r2)
-    dec = Decrypt()
-    r2 = dec.asyn_decrypt(encrypt_r2,client_private_key)
-    password_hash = ec.generate_hash(password+salt)
-    rqst.nonce_r2 = base64.b64encode(ec.asy_encrpt_key(r2,server_public_key))
-    rqst.hash = base64.b64encode(password_hash)
-    sock.send(rqst.SerializeToString())
-    data = sock.recv(BUFFER_SIZE)
-    rply.ParseFromString(data)
-    recieved_r1 = dec.asyn_decrypt(base64.b64decode(rply.nonce_r1),client_private_key)
-    if(recieved_r1 == r1):
-        print "Seems like the server is pawned closing the connection....."
-    print 'all things executed'
-    return dec.asyn_decrypt(base64.b64decode(rply.secret_key),client_private_key)"""
+def encrypt_plaintext(symm_key,plaintext,cipher):
+    encryptor = cipher.encryptor()
+    ciphertext = encryptor.update(plaintext)+ encryptor.finalize()
+    ciphertext = base64.b64encode(ciphertext)
+    return ciphertext
+
+
+def decrypt_ciphertext(cipher, ciphertext):
+    decryptor = cipher.decryptor()
+    output_plaintext = decryptor.update(ciphertext) + decryptor.finalize()
+    print 'Decrypting ciphertext...'
+    return output_plaintext
+
 
 def logout(user_name,conn,server_private_key,server_public_key):
     sqlconn = sqlite3.connect("db.sqlite")
@@ -181,6 +171,86 @@ def logout(user_name,conn,server_private_key,server_public_key):
     rply.logout_success = True
     conn.send(rply.SerializeToString())
     print 'Logout successfull' 
+
+
+def process_talk(conn,rqst):
+    username = rqst.username
+    print 'Username received is ' + username
+    sqlconn = sqlite3.connect("db.sqlite")
+    c = sqlconn.cursor()
+    sql = 'SELECT * from active_users where name = ?'
+    c.execute(sql,(rqst.username,))
+    r = c.fetchone()
+    if r is None:
+        print "Something went wrong."
+    else:
+        shared_key = base64.b64decode(r[1])
+        iv = base64.b64decode(r[3])
+        cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
+        rply.username = username
+        rply.nonce_r1 = rqst.nonce_r1
+        r2 = os.urandom(16)
+        print 'R2 is: ' + r2
+        usr = base64.b64decode(rqst.talk_to_user)
+        talk_to_user = decrypt_ciphertext(cipher,usr) 
+        print 'Received request to talk to ' + talk_to_user
+        rply.nonce_r2 = encrypt_plaintext(shared_key,r2,cipher)
+        conn.send(rply.SerializeToString())  # serialize response into string and send
+        data = conn.recv(BUFFER_SIZE)
+        if not data: 
+            print 'No response received.'
+            sys.exit()
+        rqst.ParseFromString(data)
+        nonce = base64.b64decode(rqst.nonce_r2)
+        nonced = decrypt_ciphertext(cipher,nonce)
+        print nonced
+        if nonced == r2:
+            su2 = os.urandom(16);
+            print 'User to talk to is ' + talk_to_user
+            sqlconn = sqlite3.connect("db.sqlite")
+            c = sqlconn.cursor()
+            sql = 'SELECT * from active_users where name = ?'
+            decode_usr = talk_to_user.decode('utf-8')
+            c.execute(sql,(decode_usr,))
+            result = c.fetchone()
+            if result is None:
+                print "DK went wrong."
+                sys.exit()
+            else:
+                print 'Result should be'
+                print result
+                shared_key_u2 = result[1]
+                sql = 'SELECT public_key from user_public_key where name = ?'
+                decode_username = talk_to_user.decode('utf-8')
+                c.execute(sql,(decode_username,))
+                res_u1 = str(c.fetchone()[0])
+                print 'File name is '
+                print res_u1
+                #res_u1 = res_u1.encode('utf-8')
+                #res_u1 = base64.b64decode(res_u1)
+                ec = CommonMethod()
+                res_u1 = ec.get_public_key(res_u1)
+                c.execute(sql,(decode_usr,))
+                res_u2 = (str(c.fetchone()[0]))
+                #res_u2 = base64.b64decode(res_u2)
+                res_u2 = ec.get_public_key(res_u2)
+                iv = os.urandom(16)
+                cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
+                print 'Username is' + username
+                print shared_key_u2
+                ##Check from here
+                encrypted_username = encrypt_plaintext(username,shared_key_u2,cipher)  
+                encrypted_pku1 = encrypt_plaintext(res_u1,shared_key_u2,cipher)
+                encrypted_pku2 = encrypt_plaintext(res_u2,shared_key,cipher)
+                shared_encrypted_username = encrypt_plaintext(encrypted_username,shared_key,cipher) 
+                shared_encrypted_pku1 = encrypt_plaintext(encrypted_pku1,shared_key,cipher)
+                rply.public_key_u1 = shared_encrypted_pku1
+                rply.public_key_u2 = encrypted_pku2
+                rply.username = encrypted_username
+                print 'Executed'
+                conn.send(rply.SerializeToString())
+        else:
+            print 'Nonces do not match'
 
 
             
@@ -223,6 +293,10 @@ def start_connection(conn,addr):
                 print 'Sign in is done'
         if (rqst.type == pb_example_pb2.Request.LOGOUT):
             logout(user_name,conn,server_private_key,server_public_key)
+
+        if rqst.type == pb_example_pb2.Request.TALK:           
+            process_talk(conn,rqst)
+            
         #conn.send(rply.SerializeToString())  # serialize response into string and send
 
         #if (rqst.type == pb_example_pb2.Request.ECHO): # echo request
