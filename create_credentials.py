@@ -1,10 +1,20 @@
 import sqlite3
 import base64
 from fcrypt import CommonMethod, Encrypt, Decrypt
-import argparse
 
 conn = sqlite3.connect("db.sqlite")
 c = conn.cursor()
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument("-u", "--username", type='string',
+                    help="username of user")
+
+parser.add_argument("-p", "--password", type='string',
+                    help="password of user")
+
+
+
 user_password = 'any'
 salt = str(123)
 password_hash = CommonMethod().generate_hash(user_password+salt)
@@ -25,8 +35,8 @@ field_1 = 'name'
 field_type = 'TEXT'
 field_2 = 'password_hash'
 field_type = 'TEXT'
-sql = "INSERT INTO users ('name', 'password_hash','salt') VALUES (?, ?, ?)"
-c.execute(sql, ('shivam',base64.b64encode(password_hash),salt))
+sql = "INSERT INTO users ('name', 'password_hash') VALUES (?, ?)"
+c.execute(sql, ('shivam',base64.b64encode(password_hash)))
 conn.commit()
 conn.close()
 print 'Data Inserted'

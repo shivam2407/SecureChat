@@ -34,7 +34,8 @@ field_1 = 'name'
 field_type = 'TEXT'
 field_2 = 'password_hash'
 field_type = 'TEXT'
-c.execute('CREATE TABLE {tn} ({f1} {ft}, {f2} {ft})'\
+field_3 = 'salt'
+c.execute('CREATE TABLE {tn} ({f1} {ft}, {f2} {ft},{f3} {ft})'\
         .format(tn=table_name1, f1=field_1, f2=field_2, f3=field_3, ft=field_type))
 
 #Table 3

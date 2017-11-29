@@ -51,9 +51,15 @@ sock.bind(('', TCP_PORT))	# bind to port
 sock.listen(100)			# listen with one pending connection
 
 def sign_in(conn,server_private_key,server_public_key):
+    
+
     name_of_user = rqst.payload
+
+
+    #Connecting to sql database
     sqlconn = sqlite3.connect("db.sqlite")
     c = sqlconn.cursor()
+
     #NEED TO IMPLEMENT PROOF OF WORK
     rply.hash = 'hashed secret'
     hash_send = 'hashed secret'
@@ -66,19 +72,29 @@ def sign_in(conn,server_private_key,server_public_key):
     hash_answer = base64.b64decode(rqst.hash)
     if (hash_answer != hash_send):
         print 'Cant do proof of work'
+
+    #fetching client public key    
     client_public_key_name = decrpt.asyn_decrypt(base64.b64decode(rqst.payload),server_private_key)
     client_public_key = cm.get_public_key(client_public_key_name)
+    
+    # Decrypting nonce R1 sent by client
     client_r1 = decrpt.asyn_decrypt(base64.b64decode(rqst.nonce_r1),server_private_key)
     print 'Client r1 is '+ client_r1
+
+    #Generating nonce R2 to be sent to client
     r2 = os.urandom(16)
     rply.nonce_r2 = base64.b64encode(encrpt.asy_encrpt_key(r2,client_public_key))
     conn.send(rply.SerializeToString())
     data = conn.recv(BUFFER_SIZE)
     rqst.ParseFromString(data)
+
+    #checking wether password hash for the client
     recieved_hash = decrpt.asyn_decrypt(base64.b64decode(rqst.hash),server_private_key)
     print 'Recieved HASH is '+ recieved_hash
     print 'The b64encoded hash is '+ base64.b64encode(recieved_hash)
     recieved_r2 = decrpt.asyn_decrypt(base64.b64decode(rqst.nonce_r2),server_private_key)
+    
+    # Fetching user name for generated password hash
     sql = "SELECT name from users where password_hash = ?"
     c.execute(sql,(base64.b64encode(recieved_hash),))
     user_name = c.fetchone()
@@ -90,9 +106,13 @@ def sign_in(conn,server_private_key,server_public_key):
         exit()
     else:
         rply.sign_in_success = True
+
+    #Encrypting nonce R1 to be sent to client
     encrypt_r1 = base64.b64encode(encrpt.asy_encrpt_key(client_r1,client_public_key))
     print 'Client r1 is encrypted '+ encrypt_r1
     rply.nonce_r1 = encrypt_r1
+    
+    #Generating secret key and salt for this specific session with client
     secret_key = os.urandom(16)
     salt_key = os.urandom(16)
     rply.secret_key = base64.b64encode(encrpt.asy_encrpt_key(secret_key,client_public_key))
