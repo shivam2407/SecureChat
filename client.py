@@ -159,16 +159,21 @@ def request_to_talk(data,username):
     rqst.username = username
     cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
     user_to_talk_to = raw_input("Please input user you would like to talk to")
-    usr = encrypt_plaintext(shared_key,user_to_talk_to,cipher)
-    print 'Encrypted user is' + usr
+    print type(user_to_talk_to)
+    usr = base64.b64encode(Encrypt.encrypt(user_to_talk_to,shared_key,iv))
+    print 'Encrypted user successfully'
+    # usr = encrypt_plaintext(shared_key,user_to_talk_to,cipher)
+    # print 'Encrypted user is' + usr
     rqst.talk_to_user = usr
     r1 = os.urandom(16)
-    rqst.nonce_r1 = encrypt_plaintext(shared_key,r1,cipher)
+    rqst.nonce_r1 = base64.b64encode(Encrypt.encrypt(r1,shared_key,iv))
+    # rqst.nonce_r1 = encrypt_plaintext(shared_key,r1,cipher)
     sock.send(rqst.SerializeToString())
     data = sock.recv(BUFFER_SIZE)
     rply.ParseFromString(data)
     nonce = base64.b64decode(rply.nonce_r1)
-    nonced = decrypt_ciphertext(cipher,nonce)
+    nonced = Decrypt.decrypt_message(nonce,shared_key,iv)
+    # nonced = decrypt_ciphertext(cipher,nonce)
     if nonced == r1:
         rqst.nonce_r2 = rply.nonce_r2
         sock.send(rqst.SerializeToString())
@@ -179,34 +184,38 @@ def request_to_talk(data,username):
 def talk_to_another_client(data,iv,shared_key,username,user_to_talk_to):
 	rply.ParseFromString(data)
 	cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
-	pku2 = decrypt_ciphertext(cipher,base64.b64decode(rply.public_key_u2))
+	pku2 = Decrypt.decrypt_message(base64.b64decode(rply.public_key_u2),shared_key,iv)
+	# pku2 = decrypt_ciphertext(cipher,base64.b64decode(rply.public_key_u2))
 	print 'In talk to another client'
-	pku1_ticket = decrypt_ciphertext(cipher,base64.b64decode(rply.public_key_u1))
-	u1_ticket = decrypt_ciphertext(cipher, base64.b64decode(rply.username))
+	pku1_ticket = Decrypt.decrypt_message(base64.b64decode(rply.public_key_u1),shared_key,iv)
+	# pku1_ticket = decrypt_ciphertext(cipher,base64.b64decode(rply.public_key_u1))
+	u1_ticket = Decrypt.decrypt_message(base64.b64decode(rply.username),shared_key,iv)
+	# u1_ticket = decrypt_ciphertext(cipher, base64.b64decode(rply.username))
 	d1 = pyDH.DiffieHellman()
 	d1_pubkey = d1.gen_public_key()
 	print "Diffie Hellman Component is: "
 	print d1_pubkey
-	ec = CommonMethod()
-	private_key_file = username + '_private_key.pem'
-	user_private_key = ec.get_private_key(private_key_file)
-	encrypted_dh_component = encrypt_plaintext(user_private_key,str(d1_pubkey),cipher)
-	print 'Encrypted DH component is: '
-	print encrypted_dh_component
-	r1 = os.urandom(16)
-	encrypted_r1 = encrypt_plaintext(pku2,r1,cipher)
-	encrypted_u1 = encrypt_plaintext(pku2,username,cipher)
-	talk_rqst.username = encrypted_u1
-	talk_rqst.nonce = encrypted_r1
-	talk_rqst.public_key = base64.b64encode(pku1_ticket).decode('utf-8')
-	talk_rqst.ticket_username = base64.b64encode(u1_ticket).decode('utf-8')
-	talk_rqst.dh_component = encrypted_dh_component
-	print 'Message set to send'
-	sql = 'SELECT connection_details from active_users where name = ?'
-	c.execute(sql,(user_to_talk_to,))
-	connection = c.fetchone()
-	sock.send(talk_rqst.SerializeToString())
-	print 'Message sent from client 1'
+	# ec = CommonMethod()
+	# private_key_file = username + '_private_key.pem'
+	# user_private_key = ec.get_private_key(private_key_file)
+	# encrypted_dh_component = Encrypt.asy_encrpt_key(str(d1_pubkey),user_private_key)
+	# # encrypted_dh_component = encrypt_plaintext(user_private_key,str(d1_pubkey),cipher)
+	# print 'Encrypted DH component is: '
+	# print encrypted_dh_component
+	# r1 = os.urandom(16)
+	# encrypted_r1 = encrypt_plaintext(pku2,r1,cipher)
+	# encrypted_u1 = encrypt_plaintext(pku2,username,cipher)
+	# talk_rqst.username = encrypted_u1
+	# talk_rqst.nonce = encrypted_r1
+	# talk_rqst.public_key = base64.b64encode(pku1_ticket).decode('utf-8')
+	# talk_rqst.ticket_username = base64.b64encode(u1_ticket).decode('utf-8')
+	# talk_rqst.dh_component = encrypted_dh_component
+	# print 'Message set to send'
+	# sql = 'SELECT connection_details from active_users where name = ?'
+	# c.execute(sql,(user_to_talk_to,))
+	# connection = c.fetchone()
+	# sock.send(talk_rqst.SerializeToString())
+	# print 'Message sent from client 1'
 
 
 if __name__ == '__main__':

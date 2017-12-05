@@ -6,6 +6,7 @@ import pb_example_pb2 	# import the module created by protobuf
 import subprocess    	# module for executing commands from python
 						# and retrieving stdout
 from thread import *    # import thread module
+import chardet
 import argparse
 import os
 import base64
@@ -194,9 +195,12 @@ def process_talk(conn,rqst):
         r2 = os.urandom(16)
         print 'R2 is: ' + r2
         usr = base64.b64decode(rqst.talk_to_user)
-        talk_to_user = decrypt_ciphertext(cipher,usr) 
+        talk_to_user = Decrypt.decrypt_message(usr,shared_key,iv)
+        # talk_to_user = decrypt_ciphertext(cipher,usr) 
         print 'Received request to talk to ' + talk_to_user
-        rply.nonce_r2 = encrypt_plaintext(shared_key,r2,cipher)
+        encrypted_r2 = base64.b64encode(Encrypt.encrypt(r2,shared_key,iv))
+        rply.nonce_r2 = encrypted_r2.decode('utf-8')
+        #rply.nonce_r2 = encrypt_plaintext(shared_key,r2,cipher)
         conn.send(rply.SerializeToString())  # serialize response into string and send
         data = conn.recv(BUFFER_SIZE)
         if not data: 
@@ -204,7 +208,8 @@ def process_talk(conn,rqst):
             sys.exit()
         rqst.ParseFromString(data)
         nonce = base64.b64decode(rqst.nonce_r2)
-        nonced = decrypt_ciphertext(cipher,nonce)
+        nonced = Decrypt.decrypt_message(nonce,shared_key,iv)
+        # nonced = decrypt_ciphertext(cipher,nonce)
         print nonced
         if nonced == r2:
             su2 = os.urandom(16);
@@ -242,18 +247,24 @@ def process_talk(conn,rqst):
                 cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
                 print 'Username is' + username
                 print shared_key_u2
-                username = username.encode('utf-8')
+                # username = username.encode('utf-8')
                 res_u1 = res_u1.encode('utf-8')
                 res_u2 = res_u2.encode('utf-8')
+                username = username.encode('utf-8')
+                shared_key_u2= shared_key_u2.encode('utf-8')
+                print "Type:"
+                print type(username)
+                print type(shared_key_u2)
+                print type(iv)
                 ##Check from here
-                encrypted_username = encrypt_plaintext(shared_key_u2,username,cipher)  
-                encrypted_pku1 = encrypt_plaintext(shared_key_u2,res_u1,cipher)
-                encrypted_pku2 = encrypt_plaintext(shared_key,res_u2,cipher)
-                shared_encrypted_username = encrypt_plaintext(encrypted_username,shared_key,cipher) 
-                shared_encrypted_pku1 = encrypt_plaintext(encrypted_pku1,shared_key,cipher)
-                rply.public_key_u1 = shared_encrypted_pku1
-                rply.public_key_u2 = encrypted_pku2
-                rply.username = shared_encrypted_username
+                encrypted_username = Encrypt.encrypt(username,shared_key_u2,iv)
+                encrypted_pku1 = Encrypt.encrypt(res_u1,shared_key_u2,iv) 
+                encrypted_pku2 = Encrypt.encrypt(res_u2,shared_key,iv)
+                shared_encrypted_username = Encrypt.encrypt(encrypted_username,shared_key,iv) 
+                shared_encrypted_pku1 = Encrypt.encrypt(encrypted_pku1,shared_key,iv)
+                rply.public_key_u1 = (base64.b64encode(shared_encrypted_pku1)).encode('utf-8')
+                rply.public_key_u2 = (base64.b64encode(encrypted_pku2)).encode('utf-8')
+                rply.username = (base64.b64encode(shared_encrypted_username)).encode('utf-8')
                 print 'Executed'
                 conn.send(rply.SerializeToString())
         else:
