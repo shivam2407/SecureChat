@@ -65,3 +65,60 @@ message Reply
     string username = 14;
 
 }
+
+
+
+message talk_request
+{
+
+int32 version = 1;     // This protocol version number
+
+	int32 seqn = 2;        // Sequence number
+
+	enum Type {            // Define Request types
+	SIGN = 0;
+	LIST = 1;
+	SEND = 3;
+	LOGOUT = 4;
+
+	}
+
+	Type type = 3;
+	string username = 4;
+	string ticket_username = 5;
+	string dh_component = 6;
+	string nonce = 7;
+	string public_key = 8;
+	string user_shared_key = 9;
+
+}
+
+
+
+
+message talk_reply 
+{
+int32 version = 1;     // This protocol version number
+
+	int32 seqn = 2;        // Sequence number
+
+	enum Type {            // Define Request types
+	SIGN = 0;
+	LIST = 1;
+	SEND = 3;
+	LOGOUT = 4;
+
+	}
+
+	Type type = 3;
+	string dh_component = 4;
+	string nonce = 5;
+	string user_shared_key = 6;
+
+}
+
+
+
+
+
+

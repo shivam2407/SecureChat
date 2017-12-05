@@ -6,6 +6,7 @@ import argparse
 import os
 import base64
 import sqlite3
+import pyDH
 from fcrypt import CommonMethod, Encrypt, Decrypt
 from cryptography.hazmat.primitives import hmac
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -54,6 +55,8 @@ BUFFER_SIZE = 4098
 
 rqst = pb_example_pb2.Request()	# create protobuf Request message
 rply = pb_example_pb2.Reply()	# create protobuf Reply message
+talk_rqst = pb_example_pb2.talk_request() #create protobuf talk_request message
+talk_rply = pb_example_pb2.talk_reply() #create protobuf talk_reply message
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.connect((IP_ADDR,TCP_PORT))	# connect to server
@@ -171,6 +174,39 @@ def request_to_talk(data,username):
         sock.send(rqst.SerializeToString())
         data = sock.recv(BUFFER_SIZE)
         print 'Received data'
+        talk_to_another_client(data,iv,shared_key,username,user_to_talk_to)
+
+def talk_to_another_client(data,iv,shared_key,username,user_to_talk_to):
+	rply.ParseFromString(data)
+	cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
+	pku2 = decrypt_ciphertext(cipher,base64.b64decode(rply.public_key_u2))
+	print 'In talk to another client'
+	pku1_ticket = decrypt_ciphertext(cipher,base64.b64decode(rply.public_key_u1))
+	u1_ticket = decrypt_ciphertext(cipher, base64.b64decode(rply.username))
+	d1 = pyDH.DiffieHellman()
+	d1_pubkey = d1.gen_public_key()
+	print "Diffie Hellman Component is: "
+	print d1_pubkey
+	ec = CommonMethod()
+	private_key_file = username + '_private_key.pem'
+	user_private_key = ec.get_private_key(private_key_file)
+	encrypted_dh_component = encrypt_plaintext(user_private_key,str(d1_pubkey),cipher)
+	print 'Encrypted DH component is: '
+	print encrypted_dh_component
+	r1 = os.urandom(16)
+	encrypted_r1 = encrypt_plaintext(pku2,r1,cipher)
+	encrypted_u1 = encrypt_plaintext(pku2,username,cipher)
+	talk_rqst.username = encrypted_u1
+	talk_rqst.nonce = encrypted_r1
+	talk_rqst.public_key = base64.b64encode(pku1_ticket).decode('utf-8')
+	talk_rqst.ticket_username = base64.b64encode(u1_ticket).decode('utf-8')
+	talk_rqst.dh_component = encrypted_dh_component
+	print 'Message set to send'
+	sql = 'SELECT connection_details from active_users where name = ?'
+	c.execute(sql,(user_to_talk_to,))
+	connection = c.fetchone()
+	sock.send(talk_rqst.SerializeToString())
+	print 'Message sent from client 1'
 
 
 if __name__ == '__main__':
@@ -180,41 +216,41 @@ if __name__ == '__main__':
     print 'The salt for the key is '+salt_for_key
 
     while 1:	# send 100 requests
+    	# data = sock.recv(BUFFER_SIZE)
+    	# if not data:
 
-        rqst.version = 7		# this is arbitrary for illustration purpose
-        rqst.seqn = reqno		# set sequence number
-
-    							# get request type from user
+        # rqst.version = 7		# this is arbitrary for illustration purpose
+        # rqst.seqn = reqno		# set sequence number
         
-        rcmd = raw_input('Request Type (1: SIGN-IN, 2: LIST, 3: SEND, 4: LOGOUT, 5: TALK): ')
-        if rcmd == '5':
-            username = args.user
-            print 'The username is ' + username
-            sqlconn = sqlite3.connect("db.sqlite")
-            c = sqlconn.cursor()
-            sql = 'SELECT * from active_users where name = ?'
-            c.execute(sql,(username,))
-            data = c.fetchone()
-            if data is None:
-                print "User %s is not signed-in. Please sign in to talk." %username
-            else:
-                sqlconn = sqlite3.connect("db.sqlite")
-                c = sqlconn.cursor()
-                sql = 'SELECT public_key from user_public_key where name = ?'
-                c.execute(sql,(username,))
-                key = c.fetchone()
-                if key is None:
-                    print "No record exits"
-                else:
-                    print key
-                    request_to_talk(data,username)
+	        rcmd = raw_input('Request Type (1: SIGN-IN, 2: LIST, 3: SEND, 4: LOGOUT, 5: TALK): ')
+	        if rcmd == '5':
+	            username = args.user
+	            print 'The username is ' + username
+	            sqlconn = sqlite3.connect("db.sqlite")
+	            c = sqlconn.cursor()
+	            sql = 'SELECT * from active_users where name = ?'
+	            c.execute(sql,(username,))
+	            data = c.fetchone()
+	            if data is None:
+	                print "User %s is not signed-in. Please sign in to talk." %username
+	            else:
+	                sqlconn = sqlite3.connect("db.sqlite")
+	                c = sqlconn.cursor()
+	                sql = 'SELECT public_key from user_public_key where name = ?'
+	                c.execute(sql,(username,))
+	                key = c.fetchone()
+	                if key is None:
+	                    print "No record exits"
+	                else:
+	                    print key
+	                    request_to_talk(data,username)
 
-        if rcmd == '4':
-            logout(symetric_key,salt_for_key)
-            print 'logout successfull'
-            exit()
-        print "received data... ", rply.version, rply.seqn, rply.payload
+	        if rcmd == '4':
+	            logout(symetric_key,salt_for_key)
+	            print 'logout successfull'
+	            exit()
+	        print "received data... ", rply.version, rply.seqn, rply.payload
+		#print 'Message received from client'
     
     print 'socket is closed'
     sock.close() # close socket
-

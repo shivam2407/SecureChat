@@ -16,6 +16,7 @@ file.close"""
 conn = sqlite3.connect("db.sqlite")
 c = conn.cursor()
 
+c.execute("DROP TABLE IF EXISTS active_users")
 #Table 1
 table_name1 = 'active_users' 
 field_1 = 'name'
@@ -25,9 +26,12 @@ field_type = 'TEXT'
 field_3 = 'public_key'
 field_type = 'TEXT'
 field_4 = 'key_salt'
-c.execute('CREATE TABLE {tn} ({f1} {ft}, {f2} {ft}, {f3} {ft}, {f4} {ft})'\
-        .format(tn=table_name1, f1=field_1, f2=field_2, f3=field_3, f4=field_4, ft=field_type))
+field_type = 'TEXT'
+field_5 = 'connection_details'
+c.execute('CREATE TABLE {tn} ({f1} {ft}, {f2} {ft}, {f3} {ft}, {f4} {ft}, {f5} {ft})'\
+        .format(tn=table_name1, f1=field_1, f2=field_2, f3=field_3, f4=field_4, f5=field_5, ft=field_type))
 
+c.execute("DROP TABLE IF EXISTS users")
 #Table 2
 table_name1 = 'users' 
 field_1 = 'name'
@@ -39,7 +43,7 @@ c.execute('CREATE TABLE {tn} ({f1} {ft}, {f2} {ft},{f3} {ft})'\
         .format(tn=table_name1, f1=field_1, f2=field_2, f3=field_3, ft=field_type))
 
 
-
+c.execute("DROP TABLE IF EXISTS user_public_key")
 #Table 3
 table_name1 = 'user_public_key' 
 field_1 = 'name'

@@ -41,6 +41,8 @@ BUFFER_SIZE = 4096
 
 rqst = pb_example_pb2.Request()	# create protobuf Request message
 rply = pb_example_pb2.Reply()	# create protobuf Reply message
+talk_rqst = pb_example_pb2.talk_request() #create protobuf talk_request message
+talk_rply = pb_example_pb2.talk_reply() #create protobuf talk_reply message
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -119,8 +121,8 @@ def sign_in(conn,server_private_key,server_public_key):
     rply.key_salt = base64.b64encode(encrpt.asy_encrpt_key(salt_key,client_public_key))
     conn.send(rply.SerializeToString())
     print 'Done sign_in'
-    sql = "INSERT into active_users ('name', 'shared_key', 'public_key', 'key_salt') values (?, ?, ?, ?)"
-    c.execute(sql,(name_of_user,base64.b64encode(secret_key),client_public_key_name,base64.b64encode(salt_key)))
+    sql = "INSERT into active_users ('name', 'shared_key', 'public_key', 'key_salt', 'connection_details') values (?, ?, ?, ?, ?)"
+    c.execute(sql,(name_of_user,base64.b64encode(secret_key),client_public_key_name,base64.b64encode(salt_key),str(conn)))
     sqlconn.commit()
     sqlconn.close()
     print 'Inserted the data for user'
@@ -221,7 +223,7 @@ def process_talk(conn,rqst):
                 print result
                 shared_key_u2 = result[1]
                 sql = 'SELECT public_key from user_public_key where name = ?'
-                decode_username = talk_to_user.decode('utf-8')
+                decode_username = str(talk_to_user.decode('utf-8'))
                 c.execute(sql,(decode_username,))
                 res_u1 = str(c.fetchone()[0])
                 print 'File name is '
@@ -229,31 +231,33 @@ def process_talk(conn,rqst):
                 #res_u1 = res_u1.encode('utf-8')
                 #res_u1 = base64.b64decode(res_u1)
                 ec = CommonMethod()
-                res_u1 = ec.get_public_key(res_u1)
+                res_u1 = str(ec.get_public_key(res_u1))
+                print "Public key is: " 
+                print res_u1
                 c.execute(sql,(decode_usr,))
                 res_u2 = (str(c.fetchone()[0]))
                 #res_u2 = base64.b64decode(res_u2)
-                res_u2 = ec.get_public_key(res_u2)
+                res_u2 = str(ec.get_public_key(res_u2))
                 iv = os.urandom(16)
                 cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
                 print 'Username is' + username
                 print shared_key_u2
+                username = username.encode('utf-8')
+                res_u1 = res_u1.encode('utf-8')
+                res_u2 = res_u2.encode('utf-8')
                 ##Check from here
-                encrypted_username = encrypt_plaintext(username,shared_key_u2,cipher)  
-                encrypted_pku1 = encrypt_plaintext(res_u1,shared_key_u2,cipher)
-                encrypted_pku2 = encrypt_plaintext(res_u2,shared_key,cipher)
+                encrypted_username = encrypt_plaintext(shared_key_u2,username,cipher)  
+                encrypted_pku1 = encrypt_plaintext(shared_key_u2,res_u1,cipher)
+                encrypted_pku2 = encrypt_plaintext(shared_key,res_u2,cipher)
                 shared_encrypted_username = encrypt_plaintext(encrypted_username,shared_key,cipher) 
                 shared_encrypted_pku1 = encrypt_plaintext(encrypted_pku1,shared_key,cipher)
                 rply.public_key_u1 = shared_encrypted_pku1
                 rply.public_key_u2 = encrypted_pku2
-                rply.username = encrypted_username
+                rply.username = shared_encrypted_username
                 print 'Executed'
                 conn.send(rply.SerializeToString())
         else:
             print 'Nonces do not match'
-
-
-            
 
 
 def start_connection(conn,addr):
@@ -296,17 +300,6 @@ def start_connection(conn,addr):
 
         if rqst.type == pb_example_pb2.Request.TALK:           
             process_talk(conn,rqst)
-            
-        #conn.send(rply.SerializeToString())  # serialize response into string and send
-
-        #if (rqst.type == pb_example_pb2.Request.ECHO): # echo request
-        #    rply.payload = rqst.payload                # just copy payload
-
-        #if (rqst.type == pb_example_pb2.Request.RCMD):  # remote command request
-        #    rply.payload = rqst.payload
-            ##print 'Executing command: ', rqst.payload
-                                                        # execute command and get stdout
-            ##rply.payload = subprocess.check_output(rqst.payload, shell='True')
 
 while 1:
     print "Listening again"
