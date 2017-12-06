@@ -7,7 +7,9 @@ import os
 import base64
 import sqlite3
 import pyDH
+from thread import *    # import thread module
 from fcrypt import CommonMethod, Encrypt, Decrypt
+from phase_1 import Phase_1
 from cryptography.hazmat.primitives import hmac
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import serialization
@@ -27,7 +29,6 @@ parser.add_argument("-ip", "--ip-addr", type=str,
                     help="ip address of server")
 
 parser.add_argument("-pass", "--password", type=str,
-                    default='any',
                     help="password of user")
 
 parser.add_argument("-pr", "--private-key", type=str,
@@ -39,7 +40,6 @@ parser.add_argument("-pu", "--public-key", type=str,
                     help="public key of client")
 
 parser.add_argument("-u", "--user", type=str,
-                    default='shivam',
                     help="username of loged in user")
 
 parser.add_argument("-sk", "--server-public-key", type=str,
@@ -48,8 +48,7 @@ parser.add_argument("-sk", "--server-public-key", type=str,
 
 args = parser.parse_args() 
 
-
-IP_ADDR = args.ip_addr	# use loopback interface
+IP_ADDR = args.ip_addr
 TCP_PORT = args.server_port		# TCP port of server
 BUFFER_SIZE = 4098
 
@@ -59,21 +58,28 @@ talk_rqst = pb_example_pb2.talk_request() #create protobuf talk_request message
 talk_rply = pb_example_pb2.talk_reply() #create protobuf talk_reply message
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.connect((IP_ADDR,TCP_PORT))	# connect to server
+sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
 
 reqno = 0				# initialize request number to 0
 ec = CommonMethod()
 client_private_key = ec.get_private_key(args.private_key)
 client_public_key = ec.get_public_key(args.public_key)
 server_public_key = ec.get_public_key(args.server_public_key)
-user_password = args.password
-print 'The user entered password '+ args.password
+try:
+    user_password = args.password
+except Exception:
+    print "Provide user password"
+    exit()
 salt = str(123)
 
 def sign_in():
     print 'inside sign in'
     rqst.type = pb_example_pb2.Request.SIGN
-    rqst.payload = args.user
+    try:
+        rqst.payload = args.user
+    except Exception:
+        print "Provide username please"
+        exit()
     sock.send(rqst.SerializeToString())
     data = sock.recv(BUFFER_SIZE)
     print 'first meessage sent'
@@ -114,14 +120,7 @@ def sign_in():
     key_salt = dec.asyn_decrypt(base64.b64decode(rply.key_salt),client_private_key)
     return (key, key_salt)
 
-def logout(symetric_key,key_salt):
-    rqst.type = pb_example_pb2.Request.LOGOUT
-    r1 = os.urandom(16)
-    rqst.nonce_r1 = base64.b64encode(Encrypt().encrypt(r1,symetric_key,key_salt))
-    print 'The encrypted nonce is '+rqst.nonce_r1
-    sock.send(rqst.SerializeToString())
-    data = sock.recv(BUFFER_SIZE)
-    rply.ParseFromString(data)
+def logout(symetric_key,key_salt,rply):
     cipher_r1 = base64.b64decode(rply.nonce_r1)
     cipher_r2 = base64.b64decode(rply.nonce_r2)
     recieved_r1 = Decrypt().decrypt_message(cipher_r1,symetric_key,key_salt)
@@ -216,14 +215,53 @@ def talk_to_another_client(data,iv,shared_key,username,user_to_talk_to):
 	# connection = c.fetchone()
 	# sock.send(talk_rqst.SerializeToString())
 	# print 'Message sent from client 1'
+def listen_thread():
+    while 1:
+        data = sock.recv(BUFFER_SIZE)
+        rply.ParseFromString(data)
+        if rply.type == pb_example_pb2.Reply.LOGOUT:
+            logout(symetric_key,salt_for_key,rply)
+            print "The logout was successfull"
+            exit()
+                
+
+    
+
+
 
 
 if __name__ == '__main__':
+    print 'Sending for proof of work'
+    rqst.type = pb_example_pb2.Request.POF_1
+    sock.send(rqst.SerializeToString())
+    data = sock.recv(BUFFER_SIZE)
+    rply.ParseFromString(data)
+    hash_recieved = base64.b64decode(rply.hash)
+    ip = rply.ip
+    port = rply.port
+    print "Recieved Hash secret"
+    sec = Phase_1.find_secret(hash_recieved,ip+port)
+    rqst.payload = str(sec)
+    print "Sending the found secret"
+    sock.close()
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((IP_ADDR,TCP_PORT))    # connect to server
+    rqst.type = pb_example_pb2.Request.POF_2
+    rqst.ip = ip
+    rqst.port = port
+    sock.send(rqst.SerializeToString())
+    print "Waiting for server response"
+    data = sock.recv(BUFFER_SIZE)
+    print "Reply recieved"
+    rply.ParseFromString(data)
+    if not rply.pof_success:
+        print "Wrong guess of secret"
+        exit()
     print 'going to sign_in'
     symetric_key, salt_for_key = sign_in()
     print 'The shared secret key is '+symetric_key
     print 'The salt for the key is '+salt_for_key
-
+    start_new_thread(listen_thread,())
     while 1:	# send 100 requests
     	# data = sock.recv(BUFFER_SIZE)
     	# if not data:
@@ -231,8 +269,8 @@ if __name__ == '__main__':
         # rqst.version = 7		# this is arbitrary for illustration purpose
         # rqst.seqn = reqno		# set sequence number
         
-	        rcmd = raw_input('Request Type (1: SIGN-IN, 2: LIST, 3: SEND, 4: LOGOUT, 5: TALK): ')
-	        if rcmd == '5':
+            rcmd = raw_input('Request Type (1: SIGN-IN, 2: LIST, 3: SEND, 4: LOGOUT, 5: TALK): ')
+            if rcmd == '5':
 	            username = args.user
 	            print 'The username is ' + username
 	            sqlconn = sqlite3.connect("db.sqlite")
@@ -254,12 +292,14 @@ if __name__ == '__main__':
 	                    print key
 	                    request_to_talk(data,username)
 
-	        if rcmd == '4':
-	            logout(symetric_key,salt_for_key)
-	            print 'logout successfull'
-	            exit()
+            if rcmd == '4':
+                rqst.type = pb_example_pb2.Request.LOGOUT
+                r1 = os.urandom(16)
+                rqst.nonce_r1 = base64.b64encode(Encrypt().encrypt(r1,symetric_key,salt_for_key))
+                print 'The encrypted nonce is '+rqst.nonce_r1
+                sock.send(rqst.SerializeToString())
 	        print "received data... ", rply.version, rply.seqn, rply.payload
-		#print 'Message received from client'
+		#print 'Message reived from client'
     
     print 'socket is closed'
     sock.close() # close socket

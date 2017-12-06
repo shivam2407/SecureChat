@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='pb-example.proto',
   package='',
   syntax='proto3',
-  serialized_pb=_b('\n\x10pb-example.proto\"\x80\x02\n\x07Request\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0c\n\x04seqn\x18\x02 \x01(\x05\x12\x1b\n\x04type\x18\x03 \x01(\x0e\x32\r.Request.Type\x12\x0f\n\x07payload\x18\x04 \x01(\t\x12\x10\n\x08username\x18\x05 \x01(\t\x12\x10\n\x08nonce_r1\x18\x06 \x01(\t\x12\x10\n\x08nonce_r2\x18\x07 \x01(\t\x12\x0c\n\x04hash\x18\x08 \x01(\t\x12\x12\n\nsecret_key\x18\t \x01(\t\x12\x14\n\x0ctalk_to_user\x18\n \x01(\t\":\n\x04Type\x12\x08\n\x04SIGN\x10\x00\x12\x08\n\x04LIST\x10\x01\x12\x08\n\x04SEND\x10\x03\x12\n\n\x06LOGOUT\x10\x04\x12\x08\n\x04TALK\x10\x05\"\x8d\x02\n\x05Reply\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0c\n\x04seqn\x18\x02 \x01(\x05\x12\x19\n\x04type\x18\x03 \x01(\x0e\x32\x0b.Reply.Type\x12\x0f\n\x07payload\x18\x04 \x01(\t\x12\x10\n\x08nonce_r1\x18\x05 \x01(\t\x12\x10\n\x08nonce_r2\x18\x06 \x01(\t\x12\x0c\n\x04hash\x18\x07 \x01(\t\x12\x12\n\nsecret_key\x18\x08 \x01(\t\x12\x17\n\x0fsign_in_success\x18\t \x01(\x08\x12\x10\n\x08key_salt\x18\n \x01(\t\x12\x16\n\x0elogout_success\x18\x0b \x01(\x08\"0\n\x04Type\x12\x08\n\x04SIGN\x10\x00\x12\x08\n\x04LIST\x10\x01\x12\x08\n\x04SEND\x10\x03\x12\n\n\x06LOGOUT\x10\x04\x62\x06proto3')
+  serialized_pb=_b('\n\x10pb-example.proto\"\xb0\x02\n\x07Request\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0c\n\x04seqn\x18\x02 \x01(\x05\x12\x1b\n\x04type\x18\x03 \x01(\x0e\x32\r.Request.Type\x12\x0f\n\x07payload\x18\x04 \x01(\t\x12\x10\n\x08username\x18\x05 \x01(\t\x12\x10\n\x08nonce_r1\x18\x06 \x01(\t\x12\x10\n\x08nonce_r2\x18\x07 \x01(\t\x12\x0c\n\x04hash\x18\x08 \x01(\t\x12\x12\n\nsecret_key\x18\t \x01(\t\x12\x14\n\x0ctalk_to_user\x18\n \x01(\t\x12\x0c\n\x04port\x18\x0b \x01(\t\x12\n\n\x02ip\x18\x0c \x01(\t\"P\n\x04Type\x12\x08\n\x04SIGN\x10\x00\x12\x08\n\x04LIST\x10\x01\x12\x08\n\x04SEND\x10\x03\x12\n\n\x06LOGOUT\x10\x04\x12\x08\n\x04TALK\x10\x05\x12\t\n\x05POF_1\x10\x06\x12\t\n\x05POF_2\x10\x07\"\x85\x03\n\x05Reply\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0c\n\x04seqn\x18\x02 \x01(\x05\x12\x19\n\x04type\x18\x03 \x01(\x0e\x32\x0b.Reply.Type\x12\x0f\n\x07payload\x18\x04 \x01(\t\x12\x10\n\x08nonce_r1\x18\x05 \x01(\t\x12\x10\n\x08nonce_r2\x18\x06 \x01(\t\x12\x0c\n\x04hash\x18\x07 \x01(\t\x12\x12\n\nsecret_key\x18\x08 \x01(\t\x12\x17\n\x0fsign_in_success\x18\t \x01(\x08\x12\x10\n\x08key_salt\x18\n \x01(\t\x12\x16\n\x0elogout_success\x18\x0b \x01(\x08\x12\x15\n\rpublic_key_u1\x18\x0c \x01(\t\x12\x15\n\rpublic_key_u2\x18\r \x01(\t\x12\x10\n\x08username\x18\x0e \x01(\t\x12\x13\n\x0bpof_success\x18\x0f \x01(\x08\x12\n\n\x02ip\x18\x10 \x01(\t\x12\x0c\n\x04port\x18\x11 \x01(\t\"9\n\x04Type\x12\x08\n\x04SIGN\x10\x00\x12\x08\n\x04LIST\x10\x01\x12\x08\n\x04SEND\x10\x03\x12\n\n\x06LOGOUT\x10\x04\x12\x07\n\x03POF\x10\x06\"\xfe\x01\n\x0ctalk_request\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0c\n\x04seqn\x18\x02 \x01(\x05\x12 \n\x04type\x18\x03 \x01(\x0e\x32\x12.talk_request.Type\x12\x10\n\x08username\x18\x04 \x01(\t\x12\x17\n\x0fticket_username\x18\x05 \x01(\t\x12\x14\n\x0c\x64h_component\x18\x06 \x01(\t\x12\r\n\x05nonce\x18\x07 \x01(\t\x12\x12\n\npublic_key\x18\x08 \x01(\t\x12\x17\n\x0fuser_shared_key\x18\t \x01(\t\"0\n\x04Type\x12\x08\n\x04SIGN\x10\x00\x12\x08\n\x04LIST\x10\x01\x12\x08\n\x04SEND\x10\x03\x12\n\n\x06LOGOUT\x10\x04\"\xbb\x01\n\ntalk_reply\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0c\n\x04seqn\x18\x02 \x01(\x05\x12\x1e\n\x04type\x18\x03 \x01(\x0e\x32\x10.talk_reply.Type\x12\x14\n\x0c\x64h_component\x18\x04 \x01(\t\x12\r\n\x05nonce\x18\x05 \x01(\t\x12\x17\n\x0fuser_shared_key\x18\x06 \x01(\t\"0\n\x04Type\x12\x08\n\x04SIGN\x10\x00\x12\x08\n\x04LIST\x10\x01\x12\x08\n\x04SEND\x10\x03\x12\n\n\x06LOGOUT\x10\x04\x62\x06proto3')
 )
 
 
@@ -50,11 +50,19 @@ _REQUEST_TYPE = _descriptor.EnumDescriptor(
       name='TALK', index=4, number=5,
       options=None,
       type=None),
+    _descriptor.EnumValueDescriptor(
+      name='POF_1', index=5, number=6,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='POF_2', index=6, number=7,
+      options=None,
+      type=None),
   ],
   containing_type=None,
   options=None,
-  serialized_start=219,
-  serialized_end=277,
+  serialized_start=245,
+  serialized_end=325,
 )
 _sym_db.RegisterEnumDescriptor(_REQUEST_TYPE)
 
@@ -80,13 +88,77 @@ _REPLY_TYPE = _descriptor.EnumDescriptor(
       name='LOGOUT', index=3, number=4,
       options=None,
       type=None),
+    _descriptor.EnumValueDescriptor(
+      name='POF', index=4, number=6,
+      options=None,
+      type=None),
   ],
   containing_type=None,
   options=None,
-  serialized_start=219,
-  serialized_end=267,
+  serialized_start=660,
+  serialized_end=717,
 )
 _sym_db.RegisterEnumDescriptor(_REPLY_TYPE)
+
+_TALK_REQUEST_TYPE = _descriptor.EnumDescriptor(
+  name='Type',
+  full_name='talk_request.Type',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='SIGN', index=0, number=0,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='LIST', index=1, number=1,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='SEND', index=2, number=3,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='LOGOUT', index=3, number=4,
+      options=None,
+      type=None),
+  ],
+  containing_type=None,
+  options=None,
+  serialized_start=245,
+  serialized_end=293,
+)
+_sym_db.RegisterEnumDescriptor(_TALK_REQUEST_TYPE)
+
+_TALK_REPLY_TYPE = _descriptor.EnumDescriptor(
+  name='Type',
+  full_name='talk_reply.Type',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='SIGN', index=0, number=0,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='LIST', index=1, number=1,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='SEND', index=2, number=3,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='LOGOUT', index=3, number=4,
+      options=None,
+      type=None),
+  ],
+  containing_type=None,
+  options=None,
+  serialized_start=245,
+  serialized_end=293,
+)
+_sym_db.RegisterEnumDescriptor(_TALK_REPLY_TYPE)
 
 
 _REQUEST = _descriptor.Descriptor(
@@ -166,6 +238,20 @@ _REQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='port', full_name='Request.port', index=10,
+      number=11, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='ip', full_name='Request.ip', index=11,
+      number=12, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -180,7 +266,7 @@ _REQUEST = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=21,
-  serialized_end=277,
+  serialized_end=325,
 )
 
 
@@ -268,6 +354,48 @@ _REPLY = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='public_key_u1', full_name='Reply.public_key_u1', index=11,
+      number=12, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='public_key_u2', full_name='Reply.public_key_u2', index=12,
+      number=13, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='username', full_name='Reply.username', index=13,
+      number=14, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='pof_success', full_name='Reply.pof_success', index=14,
+      number=15, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='ip', full_name='Reply.ip', index=15,
+      number=16, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='port', full_name='Reply.port', index=16,
+      number=17, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -281,16 +409,177 @@ _REPLY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=280,
-  serialized_end=549,
+  serialized_start=328,
+  serialized_end=717,
+)
+
+
+_TALK_REQUEST = _descriptor.Descriptor(
+  name='talk_request',
+  full_name='talk_request',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='talk_request.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='seqn', full_name='talk_request.seqn', index=1,
+      number=2, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='type', full_name='talk_request.type', index=2,
+      number=3, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='username', full_name='talk_request.username', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='ticket_username', full_name='talk_request.ticket_username', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='dh_component', full_name='talk_request.dh_component', index=5,
+      number=6, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='nonce', full_name='talk_request.nonce', index=6,
+      number=7, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='public_key', full_name='talk_request.public_key', index=7,
+      number=8, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='user_shared_key', full_name='talk_request.user_shared_key', index=8,
+      number=9, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+    _TALK_REQUEST_TYPE,
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=720,
+  serialized_end=974,
+)
+
+
+_TALK_REPLY = _descriptor.Descriptor(
+  name='talk_reply',
+  full_name='talk_reply',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='talk_reply.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='seqn', full_name='talk_reply.seqn', index=1,
+      number=2, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='type', full_name='talk_reply.type', index=2,
+      number=3, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='dh_component', full_name='talk_reply.dh_component', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='nonce', full_name='talk_reply.nonce', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='user_shared_key', full_name='talk_reply.user_shared_key', index=5,
+      number=6, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+    _TALK_REPLY_TYPE,
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=977,
+  serialized_end=1164,
 )
 
 _REQUEST.fields_by_name['type'].enum_type = _REQUEST_TYPE
 _REQUEST_TYPE.containing_type = _REQUEST
 _REPLY.fields_by_name['type'].enum_type = _REPLY_TYPE
 _REPLY_TYPE.containing_type = _REPLY
+_TALK_REQUEST.fields_by_name['type'].enum_type = _TALK_REQUEST_TYPE
+_TALK_REQUEST_TYPE.containing_type = _TALK_REQUEST
+_TALK_REPLY.fields_by_name['type'].enum_type = _TALK_REPLY_TYPE
+_TALK_REPLY_TYPE.containing_type = _TALK_REPLY
 DESCRIPTOR.message_types_by_name['Request'] = _REQUEST
 DESCRIPTOR.message_types_by_name['Reply'] = _REPLY
+DESCRIPTOR.message_types_by_name['talk_request'] = _TALK_REQUEST
+DESCRIPTOR.message_types_by_name['talk_reply'] = _TALK_REPLY
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 Request = _reflection.GeneratedProtocolMessageType('Request', (_message.Message,), dict(
@@ -306,6 +595,20 @@ Reply = _reflection.GeneratedProtocolMessageType('Reply', (_message.Message,), d
   # @@protoc_insertion_point(class_scope:Reply)
   ))
 _sym_db.RegisterMessage(Reply)
+
+talk_request = _reflection.GeneratedProtocolMessageType('talk_request', (_message.Message,), dict(
+  DESCRIPTOR = _TALK_REQUEST,
+  __module__ = 'pb_example_pb2'
+  # @@protoc_insertion_point(class_scope:talk_request)
+  ))
+_sym_db.RegisterMessage(talk_request)
+
+talk_reply = _reflection.GeneratedProtocolMessageType('talk_reply', (_message.Message,), dict(
+  DESCRIPTOR = _TALK_REPLY,
+  __module__ = 'pb_example_pb2'
+  # @@protoc_insertion_point(class_scope:talk_reply)
+  ))
+_sym_db.RegisterMessage(talk_reply)
 
 
 # @@protoc_insertion_point(module_scope)

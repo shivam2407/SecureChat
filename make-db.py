@@ -53,6 +53,17 @@ field_type = 'TEXT'
 c.execute('CREATE TABLE {tn} ({f1} {ft}, {f2} {ft})'\
         .format(tn=table_name1, f1=field_1, f2=field_2, ft=field_type))
 
+c.execute("DROP TABLE IF EXISTS proof_of_work")
+#Table 4
+table_name1 = 'proof_of_work'
+field_1 = 'ip'
+field_type = 'TEXT'
+field_2 = 'port'
+field_3 = 'sec'
+c.execute('CREATE TABLE {tn} ({f1} {ft}, {f2} {ft}, {f3} {ft})'\
+        .format(tn=table_name1, f1=field_1, f2=field_2, f3=field_3, ft=field_type))
+conn.commit()
+conn.close()
 
 """
 #Table 4

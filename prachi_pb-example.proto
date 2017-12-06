@@ -1,0 +1,124 @@
+// uses V3.0 of the Protocol Buffer Specification
+syntax = "proto3";
+
+// very basic protobuf protocol to illustrate communication
+// between a client and a server supporting two commands:
+//  echo, and remote command execution
+//
+// By G. Noubir
+
+message Request     // Request message
+{
+
+	int32 version = 1;     // This protocol version number
+	
+	int32 seqn = 2;        // Sequence number
+
+	enum Type {            // Define Request types
+	SIGN = 0;
+	LIST = 1;
+	SEND = 3;
+	LOGOUT = 4;
+	TALK = 5;
+
+	}
+
+    Type type = 3;          // Type of this specific message 
+
+    string payload = 4;
+    string username=5;
+    string nonce_r1 = 6;
+    string nonce_r2 = 7;
+    string hash = 8;
+    string secret_key = 9;
+    string talk_to_user = 10;
+}
+
+
+
+message Reply
+{
+	int32 version = 1;     // This protocol version number
+
+	int32 seqn = 2;        // Sequence number
+
+	enum Type {            // Define Request types
+	SIGN = 0;
+	LIST = 1;
+	SEND = 3;
+	LOGOUT = 4;
+
+	}
+
+	Type type = 3;
+
+	string payload = 4;    // The reply payload
+	string nonce_r1 = 5;
+    string nonce_r2 = 6;
+    string hash = 7;
+    string secret_key = 8;
+    bool sign_in_success = 9;
+    string key_salt = 10;
+    bool logout_success = 11;
+    string public_key_u1 = 12;
+    string public_key_u2 = 13;
+    string username = 14;
+
+}
+
+
+
+message talk_request
+{
+
+int32 version = 1;     // This protocol version number
+
+	int32 seqn = 2;        // Sequence number
+
+	enum Type {            // Define Request types
+	SIGN = 0;
+	LIST = 1;
+	SEND = 3;
+	LOGOUT = 4;
+
+	}
+
+	Type type = 3;
+	string username = 4;
+	string ticket_username = 5;
+	string dh_component = 6;
+	string nonce = 7;
+	string public_key = 8;
+	string user_shared_key = 9;
+
+}
+
+
+
+
+message talk_reply 
+{
+int32 version = 1;     // This protocol version number
+
+	int32 seqn = 2;        // Sequence number
+
+	enum Type {            // Define Request types
+	SIGN = 0;
+	LIST = 1;
+	SEND = 3;
+	LOGOUT = 4;
+
+	}
+
+	Type type = 3;
+	string dh_component = 4;
+	string nonce = 5;
+	string user_shared_key = 6;
+
+}
+
+
+
+
+
+

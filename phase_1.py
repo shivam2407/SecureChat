@@ -6,7 +6,7 @@ class Phase_1:
 	@classmethod
 	def find_secret(cls,sec_hash,ip_addr):
 		for i in range(1000000):
-			temp_hash = CommonMethod().generate_hash(ip_addr+str(i))
+			temp_hash = CommonMethod().generate_hash(ip_addr.encode('UTF-8')+str(i).encode('UTF-8'))
 			if temp_hash == sec_hash:
 				return i
 

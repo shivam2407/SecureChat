@@ -11,6 +11,7 @@ import argparse
 import os
 import base64
 import sqlite3
+from random import *
 from fcrypt import CommonMethod, Encrypt, Decrypt
 from cryptography.hazmat.primitives import hmac
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -48,10 +49,8 @@ talk_rply = pb_example_pb2.talk_reply() #create protobuf talk_reply message
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 #reuse the address even if it is in the TIME_WAIT state
-sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,1)
 sock.bind(('', TCP_PORT))	# bind to port
 
-sock.listen(100)			# listen with one pending connection
 
 def sign_in(conn,server_private_key,server_public_key):
     
@@ -161,6 +160,7 @@ def logout(user_name,conn,server_private_key,server_public_key):
     rply.nonce_r2 = base64.b64encode(Encrypt().encrypt(r2,shared_key,key_salt))
     rply.nonce_r1 = base64.b64encode(Encrypt().encrypt(recieved_r1,shared_key,key_salt))
     rply.logout_success = False
+    rply.type = pb_example_pb2.Reply.LOGOUT
     conn.send(rply.SerializeToString())
     data = conn.recv(BUFFER_SIZE)
     rqst.ParseFromString(data)
@@ -317,5 +317,51 @@ while 1:
     conn, addr = sock.accept()	# accept connection from client
     print 'ADDR : '+ str(addr[1])
     print 'CONN : '+ str(conn)
-    start_new_thread(start_connection,(conn,addr))
-    print 'Connection address:', addr
+    data = conn.recv(BUFFER_SIZE)
+    rqst.ParseFromString(data)  # parse message
+    if rqst.type == pb_example_pb2.Request.POF_1:
+        sqlconn = sqlite3.connect("db.sqlite")
+        c = sqlconn.cursor()
+        print "Querying for first time"
+        sec = randint(1, 1000000)
+        print "The secret is "+str(sec)
+        print "The ip is "+addr[0]
+        print "The port is "+str(addr[1])
+        sec_hash = CommonMethod().generate_hash(addr[0]+str(addr[1])+str(sec))
+        sql = "INSERT into proof_of_work ('ip', 'port', 'sec') values (?, ?, ?)"
+        c.execute(sql,(addr[0],addr[1],sec))
+        sqlconn.commit()
+        sqlconn.close()
+        rply.hash = base64.b64encode(sec_hash)
+        rply.ip = addr[0]
+        rply.port = str(addr[1])
+        conn.send(rply.SerializeToString())
+        conn.close()
+        continue
+    if rqst.type == pb_example_pb2.Request.POF_2:    
+        sqlconn = sqlite3.connect("db.sqlite")
+        c = sqlconn.cursor()
+        ip = rqst.ip
+        port = rqst.port
+        print "The secret is "+rqst.payload
+        print "The ip is "+ip
+        print "The port is "+port
+        sql = "SELECT sec from proof_of_work WHERE ip = ? and port = ?"
+        sql_querry = c.execute(sql,(ip,port))
+        sec = sql_querry.fetchone()
+        sql = 'DELETE from proof_of_work WHERE ip = ? and port = ?'
+        c.execute(sql,(ip,port))
+        sqlconn.commit()
+        sqlconn.close()
+        print "Quering with sec"
+        print "The secret fetched from database is "+str(sec)
+        if rqst.payload == str(sec[0]):
+            rply.pof_success = True
+            conn.send(rply.SerializeToString())
+            start_new_thread(start_connection,(conn,addr))
+            print 'Connection address:', addr
+        else:
+            rply.pof_success = False
+            print "Secret returned is not correct"
+            conn.send(rply.SerializeToString())
+            

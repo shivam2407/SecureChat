@@ -46,6 +46,7 @@ field_type = 'TEXT'
 sql = "INSERT INTO user_public_key ('name', 'public_key') VALUES (?, ?)"
 c.execute (sql, ('shivam','shivam_public_key.pem'))
 c.execute (sql, ('prachi','prachi_public_key.pem'))
+
 conn.commit()
 conn.close()
 print 'Data Inserted'

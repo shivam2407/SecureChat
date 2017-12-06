@@ -14,9 +14,9 @@ parser.add_argument("-p", "--password", type='string',
                     help="password of user")
 
 
-
-user_password = 'any'
-salt = str(123)
+args = parser.parse_args() 
+user_password = args.username
+salt = "123"
 password_hash = CommonMethod().generate_hash(user_password+salt)
 #Table 1
 table_name1 = 'active_users' 
