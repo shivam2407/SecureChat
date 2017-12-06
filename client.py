@@ -7,6 +7,7 @@ import os
 import base64
 import sqlite3
 import pyDH
+import sys
 from fcrypt import CommonMethod, Encrypt, Decrypt
 from cryptography.hazmat.primitives import hmac
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -15,6 +16,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.exceptions import *
+from thread import * 
 
 parser = argparse.ArgumentParser()
 
@@ -157,52 +159,77 @@ def request_to_talk(data,username):
     iv = base64.b64decode(data[3])
     rqst.type = pb_example_pb2.Request.TALK
     rqst.username = username
-    cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
     user_to_talk_to = raw_input("Please input user you would like to talk to")
-    print type(user_to_talk_to)
     usr = base64.b64encode(Encrypt.encrypt(user_to_talk_to,shared_key,iv))
     print 'Encrypted user successfully'
-    # usr = encrypt_plaintext(shared_key,user_to_talk_to,cipher)
-    # print 'Encrypted user is' + usr
     rqst.talk_to_user = usr
     r1 = os.urandom(16)
     rqst.nonce_r1 = base64.b64encode(Encrypt.encrypt(r1,shared_key,iv))
-    # rqst.nonce_r1 = encrypt_plaintext(shared_key,r1,cipher)
     sock.send(rqst.SerializeToString())
     data = sock.recv(BUFFER_SIZE)
     rply.ParseFromString(data)
     nonce = base64.b64decode(rply.nonce_r1)
     nonced = Decrypt.decrypt_message(nonce,shared_key,iv)
-    # nonced = decrypt_ciphertext(cipher,nonce)
     if nonced == r1:
         rqst.nonce_r2 = rply.nonce_r2
         sock.send(rqst.SerializeToString())
         data = sock.recv(BUFFER_SIZE)
         print 'Received data'
         talk_to_another_client(data,iv,shared_key,username,user_to_talk_to)
+    else:
+    	print "Nonces don't match. System exiting."
+    	exit()
+
+
+def sign_message(sender_privkey,plaintext):
+	try:
+		private_key = CommonMethod.get_private_key(sender_privkey)
+	except:
+		print 'Error in reading file'
+	try:
+		signature = private_key.sign(
+			plaintext,
+			padding.PSS(
+				mgf = padding.MGF1(hashes.SHA256()),
+				salt_length=padding.PSS.MAX_LENGTH),
+			hashes.SHA256()
+			)
+		return signature
+	except Exception as e:
+		print 'Error in signing message' + str(e)
 
 def talk_to_another_client(data,iv,shared_key,username,user_to_talk_to):
 	rply.ParseFromString(data)
 	cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
 	pku2 = Decrypt.decrypt_message(base64.b64decode(rply.public_key_u2),shared_key,iv)
-	# pku2 = decrypt_ciphertext(cipher,base64.b64decode(rply.public_key_u2))
+	print 'Public key of U2'
+	print pku2
 	print 'In talk to another client'
 	pku1_ticket = Decrypt.decrypt_message(base64.b64decode(rply.public_key_u1),shared_key,iv)
-	# pku1_ticket = decrypt_ciphertext(cipher,base64.b64decode(rply.public_key_u1))
 	u1_ticket = Decrypt.decrypt_message(base64.b64decode(rply.username),shared_key,iv)
-	# u1_ticket = decrypt_ciphertext(cipher, base64.b64decode(rply.username))
 	d1 = pyDH.DiffieHellman()
 	d1_pubkey = d1.gen_public_key()
 	print "Diffie Hellman Component is: "
+	d1_pubkey = (str(d1_pubkey)).encode()
 	print d1_pubkey
-	# ec = CommonMethod()
-	# private_key_file = username + '_private_key.pem'
-	# user_private_key = ec.get_private_key(private_key_file)
-	# encrypted_dh_component = Encrypt.asy_encrpt_key(str(d1_pubkey),user_private_key)
-	# # encrypted_dh_component = encrypt_plaintext(user_private_key,str(d1_pubkey),cipher)
-	# print 'Encrypted DH component is: '
-	# print encrypted_dh_component
-	# r1 = os.urandom(16)
+	private_key_file = username + '_private_key.pem'
+	print private_key_file
+	signed_dh_component = sign_message(private_key_file,d1_pubkey)
+	print 'Signing message succesful'
+	print 'Encrypted DH component is: '
+	r1 = os.urandom(16)
+	sqlconn = sqlite3.connect("db.sqlite")
+	c = sqlconn.cursor()
+	sql = "SELECT addr from active_users where name = ?"
+	c.execute(sql,(user_to_talk_to,))
+	port = c.fetchone()
+	port = str(port).encode('utf-8')
+	port = int(port[1:-2])
+	if port is None:
+		print 'Addr is not present'
+		exit()
+	# encrypted_r1 = Encrypt.asy_encrpt_key(r1,pku2)
+	# print 'Encrypted r1 successfully'
 	# encrypted_r1 = encrypt_plaintext(pku2,r1,cipher)
 	# encrypted_u1 = encrypt_plaintext(pku2,username,cipher)
 	# talk_rqst.username = encrypted_u1
@@ -211,12 +238,14 @@ def talk_to_another_client(data,iv,shared_key,username,user_to_talk_to):
 	# talk_rqst.ticket_username = base64.b64encode(u1_ticket).decode('utf-8')
 	# talk_rqst.dh_component = encrypted_dh_component
 	# print 'Message set to send'
-	# sql = 'SELECT connection_details from active_users where name = ?'
-	# c.execute(sql,(user_to_talk_to,))
-	# connection = c.fetchone()
-	# sock.send(talk_rqst.SerializeToString())
+	# sock.sendto(talk_rqst.SerializeToString(),(IP_ADDR,port))
 	# print 'Message sent from client 1'
 
+def listen_on_client(sock,any):
+	while 1:
+		data = sock.recv(BUFFER_SIZE)
+    	message.ParseFromString(data)
+    	print message
 
 if __name__ == '__main__':
     print 'going to sign_in'
@@ -259,6 +288,8 @@ if __name__ == '__main__':
 	            print 'logout successfull'
 	            exit()
 	        print "received data... ", rply.version, rply.seqn, rply.payload
+
+	        start_new_thread(listen_on_client(sock,32))
 		#print 'Message received from client'
     
     print 'socket is closed'

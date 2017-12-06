@@ -23,7 +23,7 @@ field_type = 'TEXT'
 field_type = 'TEXT'
 field_4 = 'key_salt'
 field_type = 'TEXT'
-field_5 = 'connection_details'
+field_5 = 'addr'
 
 #c.execute('INSERT INTO  {tn} ({f1}, {f2}, {f3}) VALUES () '.format(tn=table_name1, f1=field_1, f2=field_2, f3=field_3))
 #c.execute('INSERT INTO  {tn} ({f1}, {f2}, {f3}) VALUES () '.format(tn=table_name1, f1=field_1, f2=field_2, f3=field_3))

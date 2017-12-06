@@ -27,7 +27,8 @@ field_3 = 'public_key'
 field_type = 'TEXT'
 field_4 = 'key_salt'
 field_type = 'TEXT'
-field_5 = 'connection_details'
+field_5 = 'addr'
+field_type = 'INTEGER'
 c.execute('CREATE TABLE {tn} ({f1} {ft}, {f2} {ft}, {f3} {ft}, {f4} {ft}, {f5} {ft})'\
         .format(tn=table_name1, f1=field_1, f2=field_2, f3=field_3, f4=field_4, f5=field_5, ft=field_type))
 
