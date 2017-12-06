@@ -53,6 +53,7 @@ sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 #reuse the address even if it is in the TIME_WAIT state
 sock.bind(('', TCP_PORT))	# bind to port
 
+sock.listen(100)
 
 def sign_in(conn,addr,server_private_key,server_public_key):
     name_of_user = rqst.payload

@@ -7,14 +7,11 @@ import os
 import base64
 import sqlite3
 import pyDH
-<<<<<<< HEAD
 from thread import *    # import thread module
-=======
 import sys
 import select
 from thread import *
 import threading
->>>>>>> f147ef3f68206c520a884d1e5e5efb886db84ab2
 from fcrypt import CommonMethod, Encrypt, Decrypt
 from phase_1 import Phase_1
 from cryptography.hazmat.primitives import hmac
@@ -67,12 +64,11 @@ RANDOM = os.urandom(16)
 
 rqst = pb_example_pb2.Request()	# create protobuf Request message
 rply = pb_example_pb2.Reply()	# create protobuf Reply message
-talk_rqst = pb_example_pb2.talk_request() #create protobuf talk_request message
+talk_rqst = pb_example_pb2.talk_request() #create protobuf talk_request message0
 talk_rply = pb_example_pb2.talk_reply() #create protobuf talk_reply message
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-
+sock.connect((IP_ADDR,TCP_PORT))
 reqno = 0				# initialize request number to 0
 ec = CommonMethod()
 client_private_key = ec.get_private_key(args.private_key)
@@ -274,17 +270,7 @@ def talk_to_another_client(data,iv,shared_key,username,user_to_talk_to):
 	# talk_rqst.dh_component = encrypted_dh_component
 	# print 'Message set to send'
 	# sock.sendto(talk_rqst.SerializeToString(),(IP_ADDR,port))
-	# print 'Message sent from client 1'
-def listen_thread():
-    while 1:
-        data = sock.recv(BUFFER_SIZE)
-        rply.ParseFromString(data)
-        if rply.type == pb_example_pb2.Reply.LOGOUT:
-            logout(symetric_key,salt_for_key,rply)
-            print "The logout was successfull"
-            exit()
-                
-
+	# print 'Messa
     
 
 
@@ -306,6 +292,10 @@ def listen_to_connections(sock,any,rply):
 		rply.ParseFromString(data)
 		if rply.type == pb_example_pb2.Reply.TALK:
 			request_to_talk(rply)
+        if rply.type == pb_example_pb2.Reply.LOGOUT:
+            logout(symetric_key,salt_for_key,rply)
+            print "The logout was successfull"
+            exit()
 
 def chat_with_client(sock,any):
 	print 'In chat with client'
@@ -355,23 +345,12 @@ if __name__ == '__main__':
     print random_port
     print 'The shared secret key is '+symetric_key
     print 'The salt for the key is '+salt_for_key
-<<<<<<< HEAD
-    start_new_thread(listen_thread,())
-    while 1:	# send 100 requests
-=======
-
     start_new_thread(listen_to_connections,(sock,32,rply))
     start_new_thread(chat_with_client,(udp_sock_talk,32))
 
     while  1:
     	
-    		# send 100 requests
->>>>>>> f147ef3f68206c520a884d1e5e5efb886db84ab2
-    	# data = sock.recv(BUFFER_SIZE)
-    	# if not data:
-    	# print 'Options are (1: SIGN-IN, 2: LIST, 3: SEND, 4: LOGOUT, 5: TALK): Please press Enter to continue '
 
-<<<<<<< HEAD
         # rqst.version = 7		# this is arbitrary for illustration purpose
         # rqst.seqn = reqno		# set sequence number
         
@@ -396,7 +375,19 @@ if __name__ == '__main__':
 	                    print "No record exits"
 	                else:
 	                    print key
-	                    request_to_talk(data,username)
+	                shared_key = base64.b64decode(data[1])
+                    iv = base64.b64decode(data[3])
+                    rqst.type = pb_example_pb2.Request.TALK
+                    rqst.username = username
+                    user_to_talk_to = raw_input("Please input user you would like to talk to")
+                    usr = base64.b64encode(Encrypt.encrypt(user_to_talk_to,shared_key,iv))
+                    print 'Encrypted user successfully'
+                    rqst.talk_to_user = usr
+                    r1 = RANDOM
+                    rqst.nonce_r1 = base64.b64encode(Encrypt.encrypt(r1,shared_key,iv))
+                    sock.send(rqst.SerializeToString())
+                    print 'Data sent to server, in main'
+                            # request_to_talk(data,username)
 
             if rcmd == '4':
                 rqst.type = pb_example_pb2.Request.LOGOUT
@@ -406,65 +397,7 @@ if __name__ == '__main__':
                 sock.send(rqst.SerializeToString())
 	        print "received data... ", rply.version, rply.seqn, rply.payload
 		#print 'Message reived from client'
-=======
-     #    # rqst.version = 7		# this is arbitrary for illustration purpose
-     #    # rqst.seqn = reqno		# set sequence number
-     #    readers, _, _ = select.select([sys.stdin,sock],[],[],TIMEOUT)
-     #    for reader in readers:
-     #    	if reader is sock:
-         		# start_new_thread(listen_on_client(sock,32))
-         		# thread = StoppableThread(target = listen_on_client, args = (sock,32))
-         		# thread.start()
-     #     	else: 
-     			# print 'Input your choice (1: SIGN-IN, 2: LIST, 3: SEND, 4: LOGOUT, 5: TALK): '
-     			#rcmd = sys.stdin.readline(1)
-     			# rcmd = int(rcmd)
-		        rcmd = raw_input('Input your choice (1: SIGN-IN, 2: LIST, 3: SEND, 4: LOGOUT, 5: TALK): ')
-		        # thread.kill()
-		        if rcmd == '5':
-		            username = args.user
-		            print 'The username is ' + username
-		            sqlconn = sqlite3.connect("db.sqlite")
-		            c = sqlconn.cursor()
-		            sql = 'SELECT * from active_users where name = ?'
-		            c.execute(sql,(username,))
-		            data = c.fetchone()
-		            if data is None:
-		                print "User %s is not signed-in. Please sign in to talk." %username
-		            else:
-		                sqlconn = sqlite3.connect("db.sqlite")
-		                c = sqlconn.cursor()
-		                sql = 'SELECT public_key from user_public_key where name = ?'
-		                c.execute(sql,(username,))
-		                key = c.fetchone()
-		                if key is None:
-		                    print "No record exits"
-		                else:
-		                    print key
-		                shared_key = base64.b64decode(data[1])
-		                iv = base64.b64decode(data[3])
-		                rqst.type = pb_example_pb2.Request.TALK
-		                rqst.username = username
-		                user_to_talk_to = raw_input("Please input user you would like to talk to")
-		                usr = base64.b64encode(Encrypt.encrypt(user_to_talk_to,shared_key,iv))
-		                print 'Encrypted user successfully'
-		                rqst.talk_to_user = usr
-		                r1 = RANDOM
-		                rqst.nonce_r1 = base64.b64encode(Encrypt.encrypt(r1,shared_key,iv))
-		                sock.send(rqst.SerializeToString())
-		                print 'Data sent to server, in main'
-		                    # request_to_talk(data,username)
-
-		        if rcmd == '4':
-		            logout(symetric_key,salt_for_key)
-		            print 'logout successfull'
-		            exit()
-		        print "received data... ", rply.version, rply.seqn, rply.payload
-
-	        # start_new_thread(listen_on_client(sock,32))
-		#print 'Message received from client'
->>>>>>> f147ef3f68206c520a884d1e5e5efb886db84ab2
-    
+     
     print 'socket is closed'
     sock.close() # close socket
 

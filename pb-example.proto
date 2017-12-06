@@ -50,13 +50,10 @@ message Reply
 	LIST = 1;
 	SEND = 3;
 	LOGOUT = 4;
-<<<<<<< HEAD
-	POF = 6;
-=======
 	TALK = 5;
+	POF = 6;
 
->>>>>>> f147ef3f68206c520a884d1e5e5efb886db84ab2
-	}
+}
 
 	Type type = 3;
 
@@ -71,13 +68,10 @@ message Reply
     string public_key_u1 = 12;
     string public_key_u2 = 13;
     string username = 14;
-<<<<<<< HEAD
     bool pof_success = 15;
     string ip = 16;
     string port = 17;
-=======
-    int32 udp_port = 15;
->>>>>>> f147ef3f68206c520a884d1e5e5efb886db84ab2
+    int32 udp_port = 18;
 
 }
 
