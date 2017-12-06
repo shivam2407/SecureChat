@@ -47,6 +47,7 @@ message Reply
 	LIST = 1;
 	SEND = 3;
 	LOGOUT = 4;
+	TALK = 5;
 
 	}
 
@@ -63,6 +64,7 @@ message Reply
     string public_key_u1 = 12;
     string public_key_u2 = 13;
     string username = 14;
+    int32 udp_port = 15;
 
 }
 

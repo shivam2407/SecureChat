@@ -11,6 +11,7 @@ import argparse
 import os
 import base64
 import sqlite3
+from random import *
 from fcrypt import CommonMethod, Encrypt, Decrypt
 from cryptography.hazmat.primitives import hmac
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -19,6 +20,8 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.exceptions import *
+
+used_ports = []
 
 parser = argparse.ArgumentParser()
 
@@ -116,10 +119,17 @@ def sign_in(conn,addr,server_private_key,server_public_key):
     salt_key = os.urandom(16)
     rply.secret_key = base64.b64encode(encrpt.asy_encrpt_key(secret_key,client_public_key))
     rply.key_salt = base64.b64encode(encrpt.asy_encrpt_key(salt_key,client_public_key))
+    while 1:
+
+        ran = randint(1025,65535)
+        if ran not in used_ports:
+            break
+    rply.udp_port = ran
+    used_ports.append(ran)
     conn.send(rply.SerializeToString())
     print 'Done sign_in'
-    sql = "INSERT into active_users ('name', 'shared_key', 'public_key', 'key_salt', 'addr') values (?, ?, ?, ?, ?)"
-    c.execute(sql,(name_of_user,base64.b64encode(secret_key),client_public_key_name,base64.b64encode(salt_key),addr[1]))
+    sql = "INSERT into active_users ('name', 'shared_key', 'public_key', 'key_salt', 'port', 'ip') values (?, ?, ?, ?, ?, ?)"
+    c.execute(sql,(name_of_user,base64.b64encode(secret_key),client_public_key_name,base64.b64encode(salt_key),str(ran),addr[0]))
     sqlconn.commit()
     sqlconn.close()
     print 'Inserted the data for user'
@@ -159,10 +169,13 @@ def logout(user_name,conn,server_private_key,server_public_key):
 
 def process_talk(conn,rqst):
     username = rqst.username
+    # uername = Decrypt.decrypt_message(username,shared_key,iv)
     print 'Username received is ' + username
     sqlconn = sqlite3.connect("db.sqlite")
     c = sqlconn.cursor()
     sql = 'SELECT * from active_users where name = ?'
+    print 'Name given is :'
+    print rqst.username
     c.execute(sql,(rqst.username,))
     r = c.fetchone()
     if r is None:
@@ -180,13 +193,15 @@ def process_talk(conn,rqst):
         print 'Received request to talk to ' + talk_to_user
         encrypted_r2 = base64.b64encode(Encrypt.encrypt(r2,shared_key,iv))
         rply.nonce_r2 = encrypted_r2.decode('utf-8')
+        rply.type = pb_example_pb2.Reply.TALK
         conn.send(rply.SerializeToString())  # serialize response into string and send
+        print 'Data sent to client'
         data = conn.recv(BUFFER_SIZE)
         if not data: 
             print 'No response received.'
             sys.exit()
-        rqst.ParseFromString(data)
-        nonce = base64.b64decode(rqst.nonce_r2)
+        rply.ParseFromString(data)
+        nonce = base64.b64decode(rply.nonce_r2)
         nonced = Decrypt.decrypt_message(nonce,shared_key,iv)
         print nonced
         if nonced == r2:
