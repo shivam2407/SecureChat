@@ -21,6 +21,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.exceptions import *
 
+used_ports = []
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-p", "--server-port", type=int,
@@ -52,12 +54,8 @@ sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 sock.bind(('', TCP_PORT))	# bind to port
 
 
-def sign_in(conn,server_private_key,server_public_key):
-    
-
+def sign_in(conn,addr,server_private_key,server_public_key):
     name_of_user = rqst.payload
-
-
     #Connecting to sql database
     sqlconn = sqlite3.connect("db.sqlite")
     c = sqlconn.cursor()
@@ -119,28 +117,20 @@ def sign_in(conn,server_private_key,server_public_key):
     salt_key = os.urandom(16)
     rply.secret_key = base64.b64encode(encrpt.asy_encrpt_key(secret_key,client_public_key))
     rply.key_salt = base64.b64encode(encrpt.asy_encrpt_key(salt_key,client_public_key))
+    while 1:
+
+        ran = randint(1025,65535)
+        if ran not in used_ports:
+            break
+    rply.udp_port = ran
+    used_ports.append(ran)
     conn.send(rply.SerializeToString())
     print 'Done sign_in'
-    sql = "INSERT into active_users ('name', 'shared_key', 'public_key', 'key_salt', 'connection_details') values (?, ?, ?, ?, ?)"
-    c.execute(sql,(name_of_user,base64.b64encode(secret_key),client_public_key_name,base64.b64encode(salt_key),str(conn)))
+    sql = "INSERT into active_users ('name', 'shared_key', 'public_key', 'key_salt', 'port', 'ip') values (?, ?, ?, ?, ?, ?)"
+    c.execute(sql,(name_of_user,base64.b64encode(secret_key),client_public_key_name,base64.b64encode(salt_key),str(ran),addr[0]))
     sqlconn.commit()
     sqlconn.close()
     print 'Inserted the data for user'
-
-
-def encrypt_plaintext(symm_key,plaintext,cipher):
-    encryptor = cipher.encryptor()
-    ciphertext = encryptor.update(plaintext)+ encryptor.finalize()
-    ciphertext = base64.b64encode(ciphertext)
-    return ciphertext
-
-
-def decrypt_ciphertext(cipher, ciphertext):
-    decryptor = cipher.decryptor()
-    output_plaintext = decryptor.update(ciphertext) + decryptor.finalize()
-    print 'Decrypting ciphertext...'
-    return output_plaintext
-
 
 def logout(user_name,conn,server_private_key,server_public_key):
     sqlconn = sqlite3.connect("db.sqlite")
@@ -178,10 +168,13 @@ def logout(user_name,conn,server_private_key,server_public_key):
 
 def process_talk(conn,rqst):
     username = rqst.username
+    # uername = Decrypt.decrypt_message(username,shared_key,iv)
     print 'Username received is ' + username
     sqlconn = sqlite3.connect("db.sqlite")
     c = sqlconn.cursor()
     sql = 'SELECT * from active_users where name = ?'
+    print 'Name given is :'
+    print rqst.username
     c.execute(sql,(rqst.username,))
     r = c.fetchone()
     if r is None:
@@ -196,20 +189,19 @@ def process_talk(conn,rqst):
         print 'R2 is: ' + r2
         usr = base64.b64decode(rqst.talk_to_user)
         talk_to_user = Decrypt.decrypt_message(usr,shared_key,iv)
-        # talk_to_user = decrypt_ciphertext(cipher,usr) 
         print 'Received request to talk to ' + talk_to_user
         encrypted_r2 = base64.b64encode(Encrypt.encrypt(r2,shared_key,iv))
         rply.nonce_r2 = encrypted_r2.decode('utf-8')
-        #rply.nonce_r2 = encrypt_plaintext(shared_key,r2,cipher)
+        rply.type = pb_example_pb2.Reply.TALK
         conn.send(rply.SerializeToString())  # serialize response into string and send
+        print 'Data sent to client'
         data = conn.recv(BUFFER_SIZE)
         if not data: 
             print 'No response received.'
             sys.exit()
-        rqst.ParseFromString(data)
-        nonce = base64.b64decode(rqst.nonce_r2)
+        rply.ParseFromString(data)
+        nonce = base64.b64decode(rply.nonce_r2)
         nonced = Decrypt.decrypt_message(nonce,shared_key,iv)
-        # nonced = decrypt_ciphertext(cipher,nonce)
         print nonced
         if nonced == r2:
             su2 = os.urandom(16);
@@ -233,30 +225,21 @@ def process_talk(conn,rqst):
                 res_u1 = str(c.fetchone()[0])
                 print 'File name is '
                 print res_u1
-                #res_u1 = res_u1.encode('utf-8')
-                #res_u1 = base64.b64decode(res_u1)
                 ec = CommonMethod()
                 res_u1 = str(ec.get_public_key(res_u1))
                 print "Public key is: " 
                 print res_u1
                 c.execute(sql,(decode_usr,))
                 res_u2 = (str(c.fetchone()[0]))
-                #res_u2 = base64.b64decode(res_u2)
                 res_u2 = str(ec.get_public_key(res_u2))
                 iv = os.urandom(16)
                 cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
                 print 'Username is' + username
                 print shared_key_u2
-                # username = username.encode('utf-8')
                 res_u1 = res_u1.encode('utf-8')
                 res_u2 = res_u2.encode('utf-8')
                 username = username.encode('utf-8')
                 shared_key_u2= shared_key_u2.encode('utf-8')
-                print "Type:"
-                print type(username)
-                print type(shared_key_u2)
-                print type(iv)
-                ##Check from here
                 encrypted_username = Encrypt.encrypt(username,shared_key_u2,iv)
                 encrypted_pku1 = Encrypt.encrypt(res_u1,shared_key_u2,iv) 
                 encrypted_pku2 = Encrypt.encrypt(res_u2,shared_key,iv)
@@ -304,7 +287,7 @@ def start_connection(conn,addr):
                 exit()
             else:
                 print 'Welcome: '+user_name
-                sign_in(conn,server_private_key,server_public_key)   # just copy payload
+                sign_in(conn,addr,server_private_key,server_public_key)   # just copy payload
                 print 'Sign in is done'
         if (rqst.type == pb_example_pb2.Request.LOGOUT):
             logout(user_name,conn,server_private_key,server_public_key)
