@@ -62,6 +62,8 @@ used_ports = []
 RANDOM = os.urandom(16)
 USER1 = ''
 USER2 = ''
+dh1_obj = pyDH.DiffieHellman()
+dh2_obj = pyDH.DiffieHellman()
 
 rqst = pb_example_pb2.Request()  # create protobuf Request message
 rply = pb_example_pb2.Reply()  # create protobuf Reply message
@@ -77,6 +79,8 @@ client_public_key = ec.get_public_key(args.public_key)
 server_public_key = ec.get_public_key(args.server_public_key)
 symetric_key = ''
 salt_for_key = ''
+dh_shared_key_u1 = ''
+dh_shared_key_u2 = ''
 try:
     user_password = args.password
 except Exception:
@@ -203,6 +207,29 @@ def sign_message(sender_privkey, plaintext):
     except Exception as e:
         print 'Error in signing message' + str(e)
 
+def verify_sign(sender_pubkey,plaintext,signature):
+	print 'Verifying signature..'
+	try:
+
+		with open(sender_pubkey,"rb") as key_file:
+			public_key = serialization.load_pem_public_key(
+			key_file.read(),
+		#	password=None,
+			backend = default_backend())
+	except:
+		print 'Unable to load public key'
+	try:
+		public_key.verify(
+		signature,
+		plaintext,
+		padding.PSS(
+			mgf = padding. MGF1(hashes.SHA256()),
+			salt_length = padding.PSS.MAX_LENGTH),
+		hashes.SHA256())
+		print 'Signature verification successful'
+	except:
+		print 'Invalid signature. Message has been tampered with'
+
 
 def talk_to_another_client(data,iv_user1,symmetric_key_user1,username,user_to_talk_to):
 	rply.ParseFromString(data)
@@ -216,12 +243,23 @@ def talk_to_another_client(data,iv_user1,symmetric_key_user1,username,user_to_ta
 	encrypted_u1 = Encrypt.asy_encrpt_key(username,public_key_u2)
 	ticket_pku1 = rply.public_key_u1
 	ticket_u1 = rply.username
+	# dh1 = pyDH.DiffieHellman()
+	# dh1_obj = dh1
+	dh_component_1 = dh1_obj.gen_public_key()
+	dh_component_1 = str(dh_component_1).encode()
+	print 'The Diffie Hellman component is'
+	private_key_file = username + '_private_key.pem'
+	print private_key_file
+	signed_dh_component = sign_message(private_key_file,dh_component_1)
+	print 'Signing message succesful'
 	rply.nonce_r1 = base64.b64encode(encrypted_r1)
 	rply.username = base64.b64encode(encrypted_u1)
 	rply.public_key_u1 = base64.b64encode(ticket_pku1)
 	rply.ticket_username = base64.b64encode(ticket_u1)
-
-	# r1 = os.urandom(16)
+	print 'DH component sent is'
+	print dh_component_1
+	rply.dh_component = base64.b64encode(dh_component_1)
+	rply.signature = base64.b64encode(signed_dh_component)
 	sqlconn = sqlite3.connect("db.sqlite")
 	c = sqlconn.cursor()
 	sql = "SELECT port,ip from active_users where name = ?"
@@ -246,60 +284,11 @@ def talk_to_another_client(data,iv_user1,symmetric_key_user1,username,user_to_ta
 	udp_sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
 	udp_sock.sendto(rply.SerializeToString(),(ip,port))
 	print 'Message sent from client 1'
-	# dh = pyDH.DiffieHellman()
-	# u1_dh_component = dh.get_public_key()
-# 	# pku2 = base64.b64decode(rply.public_key_u2)
-# 	# pku2 = base64.b64decode(rply.public_key_u2)
-# 	#pku2 = base64.b64decode(pku2)
-# 	# pku2 = Decrypt.decrypt_message(base64.b64decode(rply.public_key_u2),shared_key,iv)
-# 	# print 'IV is :'
-# 	# print iv
-# 	# print 'shared key is :'
-# 	# print shared_key
-# 	pku2 = Decrypt.decrypt_message(base64.b64decode(rply.public_key_u2),shared_key,iv)
-# 	# pku2 = pku2.encode('utf-8')
-# 	# pku2 = pku2.decode('utf-8')
-# 	print '-------------------Public key of U2------------------'
-# 	print str(pku2)
-# 	print pku2
-# 	print type(pku2)
-# 	print 'In talk to another client'
-# 	public_key_user2 = CommonMethod.get_public_key(pku2)
-# 	pku1_ticket = Decrypt.decrypt_message(base64.b64decode(rply.public_key_u1),shared_key,iv)
-# 	print 'PKU1 ticket is'
-# 	print pku1_ticket
-# 	u1_ticket = Decrypt.decrypt_message(base64.b64decode(rply.username),shared_key,iv)
-# 	print 'Username after decrypting with U1S is:'
-# 	print u1_ticket
-# 	print 'IV 1 is: '
-# 	print iv
-# 	print 'shared key 1 is:'
-# 	print shared_key
-# 	d1 = pyDH.DiffieHellman()
-# 	d1_pubkey = d1.gen_public_key()
-# 	print "Diffie Hellman Component is: "
-# 	d1_pubkey = (str(d1_pubkey)).encode()
-# 	print d1_pubkey
-# 	private_key_file = username + '_private_key.pem'
-# 	print private_key_file
-# 	signed_dh_component = sign_message(private_key_file,d1_pubkey)
-# 	print 'Signing message succesful'
-# 	print 'Encrypted DH component is: '
-# 	r1 = os.urandom(16)
-# 	# encrypted_r1 = encrypt_symm_key(pku2,r1)
+	# data = sock.recvfrom(BUFFER_SIZE)
+	# if data:
+	# 	print 'Something received on client 1'
 
-# 	encrypted_r1 = Encrypt.asy_encrpt_key(r1,public_key_user2)
-# 	print 'Encrypted r1 successfully'
-# 	encrypted_u1 = Encrypt.asy_encrpt_key(username,public_key_user2)
-# 	#send phase3 message1
-# 	rply.nonce_r1 = base64.b64encode(encrypted_r1)
-# 	print 'R1 is ------'
-# 	print r1
-# 	rply.username = base64.b64encode(encrypted_u1)
-# 	rply.public_key_u1 = base64.b64encode(pku1_ticket)
-# 	rply.ticket_username = base64.b64encode(u1_ticket)
-# 	rply.dh_component = base64.b64encode(signed_dh_component)
-
+	
 	
 
 
@@ -316,80 +305,123 @@ def listen_to_connections(sock, any, rply):
         	print "The logout was successfull"
         	exit()
 
+def process_step2_phase3(sock,rply):
+	print 'In process step2 phase3'
+	dh_component_2 = base64.b64decode(rply.dh_component)
+	long_dh_component = long(dh_component_2)
+	signature = base64.b64decode(rply.signature)
+	r2 = base64.b64decode(rply.nonce_r2)
+	private_key_file_user1 = USER1 + '_private_key.pem'
+	user1_private_key = CommonMethod.get_private_key(private_key_file_user1)
+	decrypted_r2 = Decrypt.asyn_decrypt(r2,user1_private_key)
+	print 'R2 decrypted successfully'
+	print decrypted_r2
+	public_key_file_user2 = USER2 + '_public_key.pem'
+	verify_sign(public_key_file_user2,dh_component_2,signature)
+	print 'Signature verification successful on User1 side.'
+	print 'Now going for calculating shared key'
+	dh_shared_key_u2 = generate_dh_shared_secret(dh1_obj,long_dh_component)
+	print 'Shared secret generated here also'
+	print dh_shared_key_u2
+
+def generate_dh_shared_secret(dh,long_dh_component):
+	print 'Calculating shared secret'
+	shared_key = dh.gen_shared_key(long_dh_component)
+	return shared_key
+
+
 def chat_with_client(sock,any,rply):
 	print 'In chat with client'
 	data = sock.recvfrom(BUFFER_SIZE)
 	if data:
 		rply.ParseFromString(data[0])
-		print 'Data received in chat_with_client'
-		print 'User 2 is ' + args.user
-		user2 = args.user
-		decrypted_r1 = Decrypt.asyn_decrypt(base64.b64decode(rply.nonce_r1),client_private_key)
-		print decrypted_r1
-		decrypted_u1 = Decrypt.asyn_decrypt(base64.b64decode(rply.username),client_private_key)
-		print decrypted_u1
-		# symmetric_key_user2 = symetric_key
-		# iv_user2 = salt_for_key
-		sqlconn = sqlite3.connect("db.sqlite")
-		c = sqlconn.cursor()
-		sql = "SELECT * from active_users where name = ?"
-		c.execute(sql,(user2,))
-		result = c.fetchone()
-		print 'Symmetric key of user 2 is:'
-		symmetric_key_user2 = base64.b64decode(result[1])
-		print symmetric_key_user2
-		print 'IV of user2 is'
-		iv_user2 = base64.b64decode(result[3])
-		print iv_user2
-		decrypted_ticket_username = base64.b64decode(rply.ticket_username)
-		decrypted_ticket_username = base64.b64decode(decrypted_ticket_username)
-		decrypted_ticket_username = Decrypt.decrypt_message(decrypted_ticket_username,symmetric_key_user2,iv_user2)
-		print 'The answer you want is'
-		print decrypted_ticket_username
-		if decrypted_ticket_username != decrypted_u1:
-			print 'Usernames are not same, something is wrong. Exiting.'
-			exit()
-		print 'Wohooo!! This is done!'
-
-	
-
-# username = args.user
-# print username
-# private_key_file = username + '_private_key.pem'
-# print private_key_file
-# private_key_u2 = CommonMethod.get_private_key(private_key_file)
-# print 'Private key loaded successfully'
-# print rply.nonce_r1
-# # decrypted_r1 = decrypt_symm_key(private_key_file,base64.b64decode(rply.nonce_r1))
-# decrypted_r1 = Decrypt.asyn_decrypt(base64.b64decode(rply.nonce_r1),private_key_u2)
-# print 'R1 decryption successful'
-# decrypted_u1 = Decrypt.asyn_decrypt(base64.b64decode(rply.username),private_key_u2)
-# print 'U1 decryption successful'
-# sqlconn = sqlite3.connect("db.sqlite")
-# c = sqlconn.cursor()
-# sql = 'SELECT * from active_users where name = ?'
-# c.execute(sql,(username,))
-# print 'Username for shared key is::'
-# print username
-# data = c.fetchone()
-# shared_key_su2 = base64.b64decode(data[1])
-# iv = base64.b64decode(data[3])
-# print 'Fetched shared_key from database'
-# print 'IV is: '
-# print iv
-# print 'Shared key is what you want: '
-# print shared_key_su2
-# print 'Username before decrypting with shared key of user2 is:'
-# print (base64.b64decode(rply.ticket_username))
-# decrypted_ticket_username = Decrypt.decrypt_message(base64.b64decode(rply.ticket_username),shared_key_su2,iv)
-# print 'Decryption successful'
-# public_key_user1 = Decrypt.decrypt_message(base64.b64decode(rply.public_key_u1),shared_key_su2,iv)
-# print 'Got public key of user1'
-# print decrypted_ticket_username
-# print decrypted_u1
-
-# if decrypted_u1 = decrypted_ticket_username:
-
+		if rply.type == pb_example_pb2.Reply.SEND:
+			process_step2_phase3(sock,rply)
+		else:	
+			print 'Data received in chat_with_client'
+			print 'User 2 is ' + args.user
+			user2 = args.user
+			decrypted_r1 = Decrypt.asyn_decrypt(base64.b64decode(rply.nonce_r1),client_private_key)
+			print decrypted_r1
+			decrypted_u1 = Decrypt.asyn_decrypt(base64.b64decode(rply.username),client_private_key)
+			print decrypted_u1
+			sqlconn = sqlite3.connect("db.sqlite")
+			c = sqlconn.cursor()
+			sql = "SELECT * from active_users where name = ?"
+			c.execute(sql,(user2,))
+			result = c.fetchone()
+			print 'Symmetric key of user 2 is:'
+			symmetric_key_user2 = base64.b64decode(result[1])
+			print symmetric_key_user2
+			print 'IV of user2 is'
+			iv_user2 = base64.b64decode(result[3])
+			print iv_user2
+			decrypted_ticket_username = base64.b64decode(rply.ticket_username)
+			decrypted_ticket_username = base64.b64decode(decrypted_ticket_username)
+			decrypted_ticket_username = Decrypt.decrypt_message(decrypted_ticket_username,symmetric_key_user2,iv_user2)
+			print 'The answer you want is'
+			print decrypted_ticket_username
+			if decrypted_ticket_username != decrypted_u1:
+				print 'Usernames are not same, something is wrong. Exiting.'
+				exit()
+			signature = base64.b64decode(rply.signature)
+			# print 'signature received is: ' 
+			# print signature	
+			dh_component = base64.b64decode(rply.dh_component)
+			print 'DH component received is'
+			print dh_component
+			long_dh_component = long(dh_component)
+			sql = 'SELECT public_key from user_public_key where name = ?'
+			c.execute(sql,(decrypted_u1,))
+			public_key_user1_file = str(c.fetchone()[0])
+			verify_sign(public_key_user1_file,dh_component,signature)
+			print 'Diffie hellman signature verification successful in step 1 of phase 3'
+			dh_shared_key_u1 = generate_dh_shared_secret(dh2_obj, long_dh_component)
+			print 'Shared secret is:'
+			print dh_shared_key_u1
+			r2 = os.urandom(16)
+			print 'R2 on this side is:'
+			print r2
+			public_key_user1 = CommonMethod.get_public_key(public_key_user1_file)
+			encrypted_r2 = Encrypt.asy_encrpt_key(r2,public_key_user1)
+			# dh2 = pyDH.DiffieHellman()
+			# dh2_obj = dh2
+			dh_component_2 = dh2_obj.gen_public_key()
+			dh_component_2 = str(dh_component_2).encode()
+			print 'The Diffie Hellman component to be sent is'
+			print dh_component_2
+			private_key_file_user2 = user2 + '_private_key.pem'
+			print private_key_file_user2
+			signed_dh_component = sign_message(private_key_file_user2,dh_component_2)
+			print 'Signing successful on user2 side'
+			rply.nonce_r2 = base64.b64encode(encrypted_r2)
+			rply.dh_component = base64.b64encode(dh_component_2)
+			rply.signature = base64.b64encode(signed_dh_component)
+			rply.type = pb_example_pb2.Reply.SEND
+			sqlconn = sqlite3.connect("db.sqlite")
+			c = sqlconn.cursor()
+			sql = "SELECT port,ip from active_users where name = ?"
+			c.execute(sql,(decrypted_u1,))
+			result = c.fetchone()
+			port = result[0]
+			print 'Port is '
+			print port
+			port = int(port)
+			ip = result[1]
+			print 'IP address is'
+			print ip
+			ip = ip.encode('utf-8')
+			if port is None:
+				print 'Port is not present'
+				exit()
+			if ip is None:
+				print 'IP is not present'
+				exit()
+			print 'Done executing chat with client'
+			udp_sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+			udp_sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+			udp_sock.sendto(rply.SerializeToString(),(ip,port))
+			print 'Message sent from client 2'
 
 # else:
 # 	print 'Usernames dont match'

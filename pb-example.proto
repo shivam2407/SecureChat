@@ -74,6 +74,8 @@ message Reply
     int32 udp_port = 18;
     string dh_component = 19;
     string ticket_username = 20;
+    string signature = 21;
+    string dh_object = 22;
 
 
 }
@@ -110,7 +112,7 @@ int32 version = 1;     // This protocol version number
 
 message talk_reply 
 {
-int32 version = 1;     // This protocol version number
+	int32 version = 1;     // This protocol version number
 
 	int32 seqn = 2;        // Sequence number
 
@@ -119,16 +121,35 @@ int32 version = 1;     // This protocol version number
 	LIST = 1;
 	SEND = 3;
 	LOGOUT = 4;
-
-	}
-
-	Type type = 3;
-	string dh_component = 4;
-	string nonce = 5;
-	string user_shared_key = 6;
+	TALK = 5;
+	POF = 6;
 
 }
 
+	Type type = 3;
+
+	string payload = 4;    // The reply payload
+	string nonce_r1 = 5;
+    string nonce_r2 = 6;
+    string hash = 7;
+    string secret_key = 8;
+    bool sign_in_success = 9;
+    string key_salt = 10;
+    bool logout_success = 11;
+    string public_key_u1 = 12;
+    string public_key_u2 = 13;
+    string username = 14;
+    bool pof_success = 15;
+    string ip = 16;
+    string port = 17;
+    int32 udp_port = 18;
+    string dh_component = 19;
+    string ticket_username = 20;
+    string signature = 21;
+    string dh_object = 22;
+
+
+}
 
 
 
