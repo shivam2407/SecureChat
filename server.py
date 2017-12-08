@@ -213,10 +213,21 @@ def process_talk(conn,rqst):
             print 'User does not exist'
             exit()
         symmetric_key_user2 = base64.b64decode(result_user2[1])
+        print 'symmetric key of user2 is :'
+        print symmetric_key_user2
+        print 'IV of user2 is: '
         iv_user2 = base64.b64decode(result_user2[3])
-        encrypted_username = Encrypt.encrypt(base64.b64encode(username),symmetric_key_user2,iv_user2)
+        print iv_user2
+        print 'Username is'
+        print username
+        temp_username = username
+        # username = base64.b64encode(username)
+        username = username.encode('utf-8')
+        print 'Encoded username before encrypting'
+        print username
+        encrypted_username = Encrypt.encrypt(username,symmetric_key_user2,iv_user2)
         sql = 'SELECT public_key from user_public_key where name = ?'
-        c.execute(sql,(username,))
+        c.execute(sql,(temp_username,))
         result_key1 = str(c.fetchone()[0])
         if result_key1 is None:
             print 'User is not present.'

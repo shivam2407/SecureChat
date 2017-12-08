@@ -323,29 +323,35 @@ def chat_with_client(sock,any,rply):
 		rply.ParseFromString(data[0])
 		print 'Data received in chat_with_client'
 		print 'User 2 is ' + args.user
+		user2 = args.user
 		decrypted_r1 = Decrypt.asyn_decrypt(base64.b64decode(rply.nonce_r1),client_private_key)
 		print decrypted_r1
 		decrypted_u1 = Decrypt.asyn_decrypt(base64.b64decode(rply.username),client_private_key)
 		print decrypted_u1
-		symmetric_key_user2 = symetric_key
-		iv_user2 = salt_for_key
-		# sqlconn = sqlite3.connect("db.sqlite")
-		# c = sqlconn.cursor()
-		# sql = "SELECT * from active_users where name = ?"
-		# c.execute(sql,(USER2,))
-		# # result = c.fetchone()
-		# symmetric_key_user2 = result[1]
-		# iv_user2 = base64.b64decode(result[3])
-		decrypted_ticket_username = base64.b64decode(rply.public_key_u1)
+		# symmetric_key_user2 = symetric_key
+		# iv_user2 = salt_for_key
+		sqlconn = sqlite3.connect("db.sqlite")
+		c = sqlconn.cursor()
+		sql = "SELECT * from active_users where name = ?"
+		c.execute(sql,(user2,))
+		result = c.fetchone()
+		print 'Symmetric key of user 2 is:'
+		symmetric_key_user2 = base64.b64decode(result[1])
+		print symmetric_key_user2
+		print 'IV of user2 is'
+		iv_user2 = base64.b64decode(result[3])
+		print iv_user2
+		decrypted_ticket_username = base64.b64decode(rply.ticket_username)
+		decrypted_ticket_username = base64.b64decode(decrypted_ticket_username)
 		decrypted_ticket_username = Decrypt.decrypt_message(decrypted_ticket_username,symmetric_key_user2,iv_user2)
 		print 'The answer you want is'
 		print decrypted_ticket_username
-	# print decrypted_ticket_username
-	# decrypted_ticket_username = base64.b64decode(decrypted_ticket_username)
-	# print decrypted_ticket_username
-	# decrypted_ticket_username = Decrypt.decrypt_message(decrypted_ticket_username,symetric_key,salt_for_key)
-	# print decrypted_ticket_username
+		if decrypted_ticket_username != decrypted_u1:
+			print 'Usernames are not same, something is wrong. Exiting.'
+			exit()
+		print 'Wohooo!! This is done!'
 
+	
 
 # username = args.user
 # print username
