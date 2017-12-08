@@ -72,6 +72,9 @@ message Reply
     string ip = 16;
     string port = 17;
     int32 udp_port = 18;
+    string dh_component = 19;
+    string ticket_username = 20;
+
 
 }
 

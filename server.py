@@ -174,85 +174,160 @@ def process_talk(conn,rqst):
     sqlconn = sqlite3.connect("db.sqlite")
     c = sqlconn.cursor()
     sql = 'SELECT * from active_users where name = ?'
-    print 'Name given is :'
-    print rqst.username
     c.execute(sql,(rqst.username,))
     r = c.fetchone()
     if r is None:
-        print "Something went wrong."
+        print "Seems that user who sent the talk request is not online"
     else:
-        shared_key = base64.b64decode(r[1])
-        iv = base64.b64decode(r[3])
-        cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
-        rply.username = username
+        symmetric_key_user1 = base64.b64decode(r[1])
+        print 'Symmetric key of user 1'
+        print symmetric_key_user1
+        iv_user1 = base64.b64decode(r[3])
+        print 'IV of user1'
+        print iv_user1
+        decrypted_user2 = base64.b64decode(rqst.talk_to_user)
+        decrypted_user2 = Decrypt.decrypt_message(decrypted_user2,symmetric_key_user1,iv_user1)
+        print 'Received request to talk to:'
+        print decrypted_user2
         rply.nonce_r1 = rqst.nonce_r1
         r2 = os.urandom(16)
-        print 'R2 is: ' + r2
-        usr = base64.b64decode(rqst.talk_to_user)
-        talk_to_user = Decrypt.decrypt_message(usr,shared_key,iv)
-        print 'Received request to talk to ' + talk_to_user
-        encrypted_r2 = base64.b64encode(Encrypt.encrypt(r2,shared_key,iv))
-        rply.nonce_r2 = encrypted_r2.decode('utf-8')
+        rply.nonce_r2 = base64.b64encode(Encrypt.encrypt(r2,symmetric_key_user1,iv_user1))
         rply.type = pb_example_pb2.Reply.TALK
-        conn.send(rply.SerializeToString())  # serialize response into string and send
-        print 'Data sent to client'
-        data = conn.recv(BUFFER_SIZE)
-        if not data: 
-            print 'No response received.'
-            sys.exit()
-        rply.ParseFromString(data)
-        nonce = base64.b64decode(rply.nonce_r2)
-        nonced = Decrypt.decrypt_message(nonce,shared_key,iv)
-        print nonced
-        if nonced == r2:
-            su2 = os.urandom(16);
-            print 'User to talk to is ' + talk_to_user
-            sqlconn = sqlite3.connect("db.sqlite")
-            c = sqlconn.cursor()
-            sql = 'SELECT * from active_users where name = ?'
-            decode_usr = talk_to_user.decode('utf-8')
-            c.execute(sql,(decode_usr,))
-            result = c.fetchone()
-            if result is None:
-                print "DK went wrong."
-                sys.exit()
-            else:
-                print 'Result should be'
-                print result
-                shared_key_u2 = result[1]
-                sql = 'SELECT public_key from user_public_key where name = ?'
-                decode_username = str(talk_to_user.decode('utf-8'))
-                c.execute(sql,(decode_username,))
-                res_u1 = str(c.fetchone()[0])
-                print 'File name is '
-                print res_u1
-                ec = CommonMethod()
-                res_u1 = str(ec.get_public_key(res_u1))
-                print "Public key is: " 
-                print res_u1
-                c.execute(sql,(decode_usr,))
-                res_u2 = (str(c.fetchone()[0]))
-                res_u2 = str(ec.get_public_key(res_u2))
-                iv = os.urandom(16)
-                cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
-                print 'Username is' + username
-                print shared_key_u2
-                res_u1 = res_u1.encode('utf-8')
-                res_u2 = res_u2.encode('utf-8')
-                username = username.encode('utf-8')
-                shared_key_u2= shared_key_u2.encode('utf-8')
-                encrypted_username = Encrypt.encrypt(username,shared_key_u2,iv)
-                encrypted_pku1 = Encrypt.encrypt(res_u1,shared_key_u2,iv) 
-                encrypted_pku2 = Encrypt.encrypt(res_u2,shared_key,iv)
-                shared_encrypted_username = Encrypt.encrypt(encrypted_username,shared_key,iv) 
-                shared_encrypted_pku1 = Encrypt.encrypt(encrypted_pku1,shared_key,iv)
-                rply.public_key_u1 = (base64.b64encode(shared_encrypted_pku1)).encode('utf-8')
-                rply.public_key_u2 = (base64.b64encode(encrypted_pku2)).encode('utf-8')
-                rply.username = (base64.b64encode(shared_encrypted_username)).encode('utf-8')
-                print 'Executed'
-                conn.send(rply.SerializeToString())
-        else:
-            print 'Nonces do not match'
+        conn.send(rply.SerializeToString())
+        print 'R1 and R2 sent to client'
+        nonce_data = conn.recv(BUFFER_SIZE)
+        if not nonce_data:
+            print 'No response received. Exiting..'
+            exit()
+        rply.ParseFromString(nonce_data)
+        decrypted_r2 = base64.b64decode(rply.nonce_r2)
+        decrypted_r2 = Decrypt.decrypt_message(decrypted_r2,symmetric_key_user1,iv_user1)
+        print 'R2 decrypted successfully'
+        if r2 != decrypted_r2:
+            print 'R2 does not match, something is wrong. Exiting'
+            exit()
+        sql = 'SELECT * from active_users where name = ?'
+        c.execute(sql,(decrypted_user2,))
+        result_user2 = c.fetchone()
+        if result_user2 is None:
+            print 'User does not exist'
+            exit()
+        symmetric_key_user2 = base64.b64decode(result_user2[1])
+        iv_user2 = base64.b64decode(result_user2[3])
+        encrypted_username = Encrypt.encrypt(base64.b64encode(username),symmetric_key_user2,iv_user2)
+        sql = 'SELECT public_key from user_public_key where name = ?'
+        c.execute(sql,(username,))
+        result_key1 = str(c.fetchone()[0])
+        if result_key1 is None:
+            print 'User is not present.'
+            exit()
+        encrypted_pku1 = Encrypt.encrypt(result_key1,symmetric_key_user2,iv_user2)
+        sql = 'SELECT public_key from user_public_key where name = ?'
+        c.execute(sql,(decrypted_user2,))
+        result_key2 = str(c.fetchone()[0])
+        if result_key2 is None:
+            print 'User is not present.'
+            exit()
+        encrypted_pku2 = Encrypt.encrypt(result_key2,symmetric_key_user1,iv_user1)
+        rply.username = base64.b64encode(encrypted_username)
+        rply.public_key_u1 = base64.b64encode(encrypted_pku1)
+        rply.public_key_u2 = base64.b64encode(encrypted_pku2)
+        conn.send(rply.SerializeToString())
+        print 'Data sent from server -- Last message'
+
+
+
+        # cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
+        # rply.username = username
+        # rply.nonce_r1 = rqst.nonce_r1
+        # r2 = os.urandom(16)
+        # print 'R2 is: ' + r2
+        # usr = base64.b64decode(rqst.talk_to_user)
+        # talk_to_user = Decrypt.decrypt_message(usr,shared_key,iv)
+        # print 'Received request to talk to ' + talk_to_user
+        # encrypted_r2 = base64.b64encode(Encrypt.encrypt(r2,shared_key,iv))
+        # rply.nonce_r2 = encrypted_r2.decode('utf-8')
+        # rply.type = pb_example_pb2.Reply.TALK
+        # conn.send(rply.SerializeToString())  # serialize response into string and send
+        # print 'Data sent to client'
+        # data = conn.recv(BUFFER_SIZE)
+        # if not data: 
+        #     print 'No response received.'
+        #     sys.exit()
+        # rply.ParseFromString(data)
+        # nonce = base64.b64decode(rply.nonce_r2)
+        # nonced = Decrypt.decrypt_message(nonce,shared_key,iv)
+        # print nonced
+        # if nonced == r2:
+        #     su2 = os.urandom(16)
+        #     print 'User to talk to is ' + talk_to_user
+        #     sqlconn = sqlite3.connect("db.sqlite")
+        #     c = sqlconn.cursor()
+        #     sql = 'SELECT * from active_users where name = ?'
+        #     decode_usr = talk_to_user.decode('utf-8')
+        #     c.execute(sql,(decode_usr,))
+        #     result = c.fetchone()
+        #     if result is None:
+        #         print "DK went wrong."
+        #         sys.exit()
+        #     else:
+        #         print 'Result should be'
+        #         print result
+        #         shared_key_u2 = base64.b64decode(result[1])
+        #         sql = 'SELECT public_key from user_public_key where name = ?'
+        #         decode_username = str(username.decode('utf-8'))
+        #         c.execute(sql,(decode_username,))
+        #         res_u1 = str(c.fetchone()[0])
+        #         print 'File name is '
+        #         print res_u1
+        #         ec = CommonMethod()
+        #         # res_u1 = str(ec.get_public_key(res_u1))
+        #         print "Public key is: " 
+        #         print res_u1
+        #         c.execute(sql,(decode_usr,))
+        #         # print 'Type from database is:-----------------'
+        #         # print type(c.fetchone()[0])
+        #         res_u2 = (str(c.fetchone()[0])) 
+        #         print res_u2
+        #         # res_u2 = str(ec.get_public_key(res_u2))
+        #         # iv = os.urandom(16)
+        #         # cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
+        #         print 'Username is' + username
+        #         print shared_key_u2
+        #         print '---------------Here is the shared key -----------'
+        #         # res_u1 = res_u1.encode('utf-8')
+        #         # res_u2 = res_u2.encode('utf-8')
+        #         username = username.encode('utf-8')
+        #         # shared_key_u2= shared_key_u2.encode('utf-8')
+        #         print 'Sharedkey after encoding ----------------'
+        #         print shared_key_u2
+        #         print iv
+        #         encrypted_username = Encrypt.encrypt(username,shared_key_u2,iv)
+        #         # print 'Username encrypted with shared key of user2 is '
+        #         # print encrypted_username
+        #         encrypted_pku1 = Encrypt.encrypt(res_u1,shared_key_u2,iv) 
+        #         print '----------------Encrypted 1st pku1'
+        #         print encrypted_pku1
+        #         # print 'IV  is: '
+        #         # print iv
+        #         # print 'shared key is: '
+        #         # print shared_key_u2
+        #         encrypted_pku2 = Encrypt.encrypt(res_u2,shared_key,iv)
+        #         shared_encrypted_username = Encrypt.encrypt(encrypted_username,shared_key,iv)
+        #         print 'Username shared and encrypted with su1 is:'
+        #         print shared_encrypted_username 
+        #         shared_encrypted_pku1 = Encrypt.encrypt(encrypted_pku1,shared_key,iv)
+        #         rply.public_key_u1 = (base64.b64encode(shared_encrypted_pku1))#.encode('utf-8')
+        #         print 'Encoding in server -pku1'
+        #         print rply.public_key_u1
+        #         rply.public_key_u2 = (base64.b64encode(encrypted_pku2))#.encode('utf-8')
+        #         print 'Username that you want is :'
+        #         rply.username = (base64.b64encode(shared_encrypted_username))#.encode('utf-8')
+        #         print rply.username
+        #         print 'Executed'
+        #         conn.send(rply.SerializeToString())
+        # else:
+        #     print 'Nonces do not match'
 
 
 def start_connection(conn,addr):
@@ -303,6 +378,8 @@ while 1:
     print 'CONN : '+ str(conn)
     data = conn.recv(BUFFER_SIZE)
     rqst.ParseFromString(data)  # parse message
+    # if rqst.type == pb_example_pb2.Request.TALK:           
+    #         process_talk(conn,rqst)
     if rqst.type == pb_example_pb2.Request.POF_1:
         sqlconn = sqlite3.connect("db.sqlite")
         c = sqlconn.cursor()
