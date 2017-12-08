@@ -64,7 +64,10 @@ USER1 = ''
 USER2 = ''
 dh1_obj = pyDH.DiffieHellman()
 dh2_obj = pyDH.DiffieHellman()
-
+global R1 
+R1 = os.urandom(16)
+global R2 
+R2 = os.urandom(16)
 rqst = pb_example_pb2.Request()  # create protobuf Request message
 rply = pb_example_pb2.Reply()  # create protobuf Reply message
 talk_rqst = pb_example_pb2.talk_request()  # create protobuf talk_request message0
@@ -79,8 +82,8 @@ client_public_key = ec.get_public_key(args.public_key)
 server_public_key = ec.get_public_key(args.server_public_key)
 symetric_key = ''
 salt_for_key = ''
-dh_shared_key_u1 = ''
-dh_shared_key_u2 = ''
+global dh_shared_key_u1 
+global dh_shared_key_u2 
 try:
     user_password = args.password
 except Exception:
@@ -229,6 +232,7 @@ def verify_sign(sender_pubkey,plaintext,signature):
 		print 'Signature verification successful'
 	except:
 		print 'Invalid signature. Message has been tampered with'
+		exit()
 
 
 def talk_to_another_client(data,iv_user1,symmetric_key_user1,username,user_to_talk_to):
@@ -237,7 +241,10 @@ def talk_to_another_client(data,iv_user1,symmetric_key_user1,username,user_to_ta
 	decrypted_pku2 = Decrypt.decrypt_message(decrypted_pku2,symmetric_key_user1,iv_user1)
 	print 'Decrypted pku2 is'
 	print decrypted_pku2
-	r1 = os.urandom(16)
+	r1 = R1
+	# r1 = os.urandom(16)
+	# global R1
+	# R1 = r1
 	public_key_u2 = CommonMethod.get_public_key(decrypted_pku2)
 	encrypted_r1 = Encrypt.asy_encrpt_key(r1,public_key_u2)
 	encrypted_u1 = Encrypt.asy_encrpt_key(username,public_key_u2)
@@ -320,15 +327,123 @@ def process_step2_phase3(sock,rply):
 	verify_sign(public_key_file_user2,dh_component_2,signature)
 	print 'Signature verification successful on User1 side.'
 	print 'Now going for calculating shared key'
+	global dh_shared_key_u2
 	dh_shared_key_u2 = generate_dh_shared_secret(dh1_obj,long_dh_component)
 	print 'Shared secret generated here also'
 	print dh_shared_key_u2
+	sign_dh_shared_key_u1 = sign_message(private_key_file_user1,dh_shared_key_u2)
+	print 'Shared key signed! :)'
+	print sign_dh_shared_key_u1
+	encrypted_r2 = Encrypt.encrypt(R2,dh_shared_key_u2,RANDOM)
+	encrypted_signed_key = Encrypt.encrypt(sign_dh_shared_key_u1,dh_shared_key_u2,RANDOM)
+	rply.secret_key = base64.b64encode(encrypted_signed_key)
+	rply.nonce_r2 = base64.b64encode(encrypted_r2)
+	rply.type = pb_example_pb2.Reply.SEND_1
+	sqlconn = sqlite3.connect("db.sqlite")
+	c = sqlconn.cursor()
+	sql = "SELECT port,ip from active_users where name = ?"
+	c.execute(sql,(USER2,))
+	result = c.fetchone()
+	port = result[0]
+	print 'Port is '
+	print port
+	port = int(port)
+	ip = result[1]
+	print 'IP address is'
+	print ip
+	ip = ip.encode('utf-8')
+	if port is None:
+		print 'Port is not present'
+		exit()
+	if ip is None:
+		print 'IP is not present'
+		exit()
+	print 'Done executing chat with client'
+	udp_sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+	udp_sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+	udp_sock.sendto(rply.SerializeToString(),(ip,port))
+	print 'Encryption done'
+	print 'Process done!'
+
 
 def generate_dh_shared_secret(dh,long_dh_component):
 	print 'Calculating shared secret'
 	shared_key = dh.gen_shared_key(long_dh_component)
-	return shared_key
+	return shared_key[:16]
 
+
+def process_step3_phase3(sock,rply):
+	print 'In process3 phase 3'
+	decrypted_r2 = base64.b64decode(rply.nonce_r2)
+	decrypted_r2 = Decrypt.decrypt_message(decrypted_r2,dh_shared_key_u2,RANDOM)
+	print decrypted_r2
+	print R2
+	print 'Just checking'
+	if decrypted_r2 != R2:
+		print 'R2 does not match, Something went wrong. Exiting.'
+		exit()
+	decrypted_signed_key = base64.b64decode(rply.secret_key)
+	decrypted_signed_key = Decrypt.decrypt_message(decrypted_signed_key,dh_shared_key_u2,RANDOM)
+	print 'Decrypted signed key is:'
+	print decrypted_signed_key
+	public_key_file_user1 = USER1 + '_public_key.pem'
+	verify_sign(public_key_file_user1,dh_shared_key_u2,decrypted_signed_key)
+	private_key_file_user2 = USER2 + '_private_key.pem'
+	#Prepare next step process
+	sign_dh_shared_key_u2 = sign_message(private_key_file_user2,dh_shared_key_u2)
+	print 'Shared key signed here too! :)'
+	print sign_dh_shared_key_u2
+	encrypted_r1 = Encrypt.encrypt(R1,dh_shared_key_u2,RANDOM)
+	encrypted_signed_key = Encrypt.encrypt(sign_dh_shared_key_u2,dh_shared_key_u2,RANDOM)
+
+	rply.secret_key = base64.b64encode(encrypted_signed_key)
+	rply.nonce_r1 = base64.b64encode(encrypted_r1)
+	rply.type = pb_example_pb2.Reply.SEND_2
+	sqlconn = sqlite3.connect("db.sqlite")
+	c = sqlconn.cursor()
+	sql = "SELECT port,ip from active_users where name = ?"
+	c.execute(sql,(USER1,))
+	result = c.fetchone()
+	port = result[0]
+	print 'Port is '
+	print port
+	port = int(port)
+	ip = result[1]
+	print 'IP address is'
+	print ip
+	ip = ip.encode('utf-8')
+	if port is None:
+		print 'Port is not present'
+		exit()
+	if ip is None:
+		print 'IP is not present'
+		exit()
+	print 'Done executing chat with client'
+	udp_sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+	udp_sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+	udp_sock.sendto(rply.SerializeToString(),(ip,port))
+	print 'Encryption done here also'
+	print 'Process done here also!'
+
+def process_step4_phase3(sock,rply):
+	print 'In process step4 phase3'
+	decrypted_r1 = base64.b64decode(rply.nonce_r1)
+	decrypted_r1 = Decrypt.decrypt_message(decrypted_r1,dh_shared_key_u2,RANDOM)
+	print decrypted_r1
+	print R1
+	if decrypted_r1 != R1:
+		print 'R1 does not match, Something went wrong. Exiting.'
+		exit()
+	decrypted_signed_key = base64.b64decode(rply.secret_key)
+	decrypted_signed_key = Decrypt.decrypt_message(decrypted_signed_key,dh_shared_key_u2,RANDOM)
+	print 'Decrypted signed key is:'
+	print decrypted_signed_key
+	public_key_file_user2 = USER2 + '_public_key.pem'
+	verify_sign(public_key_file_user2,dh_shared_key_u2,decrypted_signed_key)
+	print 'Yayyy!! Protocol done! :D'
+	message_to_send = 'Hi '+ USER2 +' ,this is ' +USER1
+	print message_to_send
+	
 
 def chat_with_client(sock,any,rply):
 	print 'In chat with client'
@@ -337,6 +452,11 @@ def chat_with_client(sock,any,rply):
 		rply.ParseFromString(data[0])
 		if rply.type == pb_example_pb2.Reply.SEND:
 			process_step2_phase3(sock,rply)
+		if rply.type == pb_example_pb2.Reply.SEND_1:
+			process_step3_phase3(sock,rply)
+		if rply.type == pb_example_pb2.Reply.SEND_2:
+			process_step4_phase3(sock,rply)
+			print 'Done with phase3'
 		else:	
 			print 'Data received in chat_with_client'
 			print 'User 2 is ' + args.user
@@ -364,9 +484,7 @@ def chat_with_client(sock,any,rply):
 			if decrypted_ticket_username != decrypted_u1:
 				print 'Usernames are not same, something is wrong. Exiting.'
 				exit()
-			signature = base64.b64decode(rply.signature)
-			# print 'signature received is: ' 
-			# print signature	
+			signature = base64.b64decode(rply.signature)	
 			dh_component = base64.b64decode(rply.dh_component)
 			print 'DH component received is'
 			print dh_component
@@ -376,10 +494,14 @@ def chat_with_client(sock,any,rply):
 			public_key_user1_file = str(c.fetchone()[0])
 			verify_sign(public_key_user1_file,dh_component,signature)
 			print 'Diffie hellman signature verification successful in step 1 of phase 3'
+			global dh_shared_key_u1 
 			dh_shared_key_u1 = generate_dh_shared_secret(dh2_obj, long_dh_component)
 			print 'Shared secret is:'
 			print dh_shared_key_u1
-			r2 = os.urandom(16)
+			r2 = R2
+			# r2 = os.urandom(16)
+			# global R2 
+			# R2 = r2
 			print 'R2 on this side is:'
 			print r2
 			public_key_user1 = CommonMethod.get_public_key(public_key_user1_file)

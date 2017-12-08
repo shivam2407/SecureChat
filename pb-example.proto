@@ -22,6 +22,8 @@ message Request     // Request message
 	TALK = 5;
 	POF_1 = 6;
 	POF_2 = 7;
+	SEND_1 = 8;
+	SEND_2 = 9;
 	}
 
     Type type = 3;          // Type of this specific message 
@@ -52,6 +54,9 @@ message Reply
 	LOGOUT = 4;
 	TALK = 5;
 	POF = 6;
+	SEND_1 = 7;
+	SEND_2 = 8;
+	SEND_3 = 9;
 
 }
 
