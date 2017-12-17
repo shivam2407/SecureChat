@@ -153,6 +153,7 @@ def sign_in(conn,addr,server_private_key,server_public_key):
         exit()
 
 def logout(user_name,conn,server_private_key,server_public_key):
+<<<<<<< HEAD
     #user_name = Decrypt.asyn_decrypt(base64.b64decode(user_name),server_private_key)
     try:
         sqlconn = sqlite3.connect("db.sqlite")
@@ -270,6 +271,213 @@ def list(user_name,conn,server_private_key,server_public_key):
         sqlconn.close()
         exit() 
 
+=======
+    sqlconn = sqlite3.connect("db.sqlite")
+    c = sqlconn.cursor()
+    sql = 'SELECT * from active_users where name = ?'
+    c.execute(sql,(user_name,))
+    r = c.fetchone()
+    shared_key = base64.b64decode(r[1])
+    key_salt = base64.b64decode(r[3])
+    client_public_key_name = r[2]
+    print ' The shared secret key from database is '+shared_key
+    print ' The salt is '+key_salt
+    print 'The encrypted nonce_r1 is '+base64.b64decode(rqst.nonce_r1)
+    client_public_key = CommonMethod().get_public_key(client_public_key_name)
+    recieved_r1 = Decrypt().decrypt_message(base64.b64decode(rqst.nonce_r1),shared_key,key_salt)
+    r2 = os.urandom(16)
+    rply.nonce_r2 = base64.b64encode(Encrypt().encrypt(r2,shared_key,key_salt))
+    rply.nonce_r1 = base64.b64encode(Encrypt().encrypt(recieved_r1,shared_key,key_salt))
+    rply.logout_success = False
+    rply.type = pb_example_pb2.Reply.LOGOUT
+    conn.send(rply.SerializeToString())
+    data = conn.recv(BUFFER_SIZE)
+    rqst.ParseFromString(data)
+    recieved_r2 = Decrypt().decrypt_message(base64.b64decode(rqst.nonce_r2),shared_key,key_salt)
+    sql = 'DELETE from active_users where name = ?'
+    c.execute(sql,(user_name,))
+    sqlconn.commit()
+    sqlconn.close()
+    if recieved_r2 != r2:
+        print 'seems like someone else is trying to logout user'
+    rply.logout_success = True
+    conn.send(rply.SerializeToString())
+    print 'Logout successfull' 
+
+
+def process_talk(conn,rqst):
+    username = rqst.username
+    # uername = Decrypt.decrypt_message(username,shared_key,iv)
+    print 'Username received is ' + username
+    sqlconn = sqlite3.connect("db.sqlite")
+    c = sqlconn.cursor()
+    sql = 'SELECT * from active_users where name = ?'
+    c.execute(sql,(rqst.username,))
+    r = c.fetchone()
+    if r is None:
+        print "Seems that user who sent the talk request is not online"
+    else:
+        symmetric_key_user1 = base64.b64decode(r[1])
+        print 'Symmetric key of user 1'
+        print symmetric_key_user1
+        iv_user1 = base64.b64decode(r[3])
+        print 'IV of user1'
+        print iv_user1
+        decrypted_user2 = base64.b64decode(rqst.talk_to_user)
+        decrypted_user2 = Decrypt.decrypt_message(decrypted_user2,symmetric_key_user1,iv_user1)
+        print 'Received request to talk to:'
+        print decrypted_user2
+        rply.nonce_r1 = rqst.nonce_r1
+        r2 = os.urandom(16)
+        rply.nonce_r2 = base64.b64encode(Encrypt.encrypt(r2,symmetric_key_user1,iv_user1))
+        rply.type = pb_example_pb2.Reply.TALK
+        conn.send(rply.SerializeToString())
+        print 'R1 and R2 sent to client'
+        nonce_data = conn.recv(BUFFER_SIZE)
+        if not nonce_data:
+            print 'No response received. Exiting..'
+            exit()
+        rply.ParseFromString(nonce_data)
+        decrypted_r2 = base64.b64decode(rply.nonce_r2)
+        decrypted_r2 = Decrypt.decrypt_message(decrypted_r2,symmetric_key_user1,iv_user1)
+        print 'R2 decrypted successfully'
+        if r2 != decrypted_r2:
+            print 'R2 does not match, something is wrong. Exiting'
+            exit()
+        sql = 'SELECT * from active_users where name = ?'
+        c.execute(sql,(decrypted_user2,))
+        result_user2 = c.fetchone()
+        if result_user2 is None:
+            print 'User does not exist'
+            exit()
+        symmetric_key_user2 = base64.b64decode(result_user2[1])
+        print 'symmetric key of user2 is :'
+        print symmetric_key_user2
+        print 'IV of user2 is: '
+        iv_user2 = base64.b64decode(result_user2[3])
+        print iv_user2
+        print 'Username is'
+        print username
+        temp_username = username
+        # username = base64.b64encode(username)
+        username = username.encode('utf-8')
+        print 'Encoded username before encrypting'
+        print username
+        encrypted_username = Encrypt.encrypt(username,symmetric_key_user2,iv_user2)
+        sql = 'SELECT public_key from user_public_key where name = ?'
+        c.execute(sql,(temp_username,))
+        result_key1 = str(c.fetchone()[0])
+        if result_key1 is None:
+            print 'User is not present.'
+            exit()
+        encrypted_pku1 = Encrypt.encrypt(result_key1,symmetric_key_user2,iv_user2)
+        sql = 'SELECT public_key from user_public_key where name = ?'
+        c.execute(sql,(decrypted_user2,))
+        result_key2 = str(c.fetchone()[0])
+        if result_key2 is None:
+            print 'User is not present.'
+            exit()
+        encrypted_pku2 = Encrypt.encrypt(result_key2,symmetric_key_user1,iv_user1)
+        rply.username = base64.b64encode(encrypted_username)
+        rply.public_key_u1 = base64.b64encode(encrypted_pku1)
+        rply.public_key_u2 = base64.b64encode(encrypted_pku2)
+        conn.send(rply.SerializeToString())
+        print 'Data sent from server -- Last message'
+
+
+
+        # cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
+        # rply.username = username
+        # rply.nonce_r1 = rqst.nonce_r1
+        # r2 = os.urandom(16)
+        # print 'R2 is: ' + r2
+        # usr = base64.b64decode(rqst.talk_to_user)
+        # talk_to_user = Decrypt.decrypt_message(usr,shared_key,iv)
+        # print 'Received request to talk to ' + talk_to_user
+        # encrypted_r2 = base64.b64encode(Encrypt.encrypt(r2,shared_key,iv))
+        # rply.nonce_r2 = encrypted_r2.decode('utf-8')
+        # rply.type = pb_example_pb2.Reply.TALK
+        # conn.send(rply.SerializeToString())  # serialize response into string and send
+        # print 'Data sent to client'
+        # data = conn.recv(BUFFER_SIZE)
+        # if not data: 
+        #     print 'No response received.'
+        #     sys.exit()
+        # rply.ParseFromString(data)
+        # nonce = base64.b64decode(rply.nonce_r2)
+        # nonced = Decrypt.decrypt_message(nonce,shared_key,iv)
+        # print nonced
+        # if nonced == r2:
+        #     su2 = os.urandom(16)
+        #     print 'User to talk to is ' + talk_to_user
+        #     sqlconn = sqlite3.connect("db.sqlite")
+        #     c = sqlconn.cursor()
+        #     sql = 'SELECT * from active_users where name = ?'
+        #     decode_usr = talk_to_user.decode('utf-8')
+        #     c.execute(sql,(decode_usr,))
+        #     result = c.fetchone()
+        #     if result is None:
+        #         print "DK went wrong."
+        #         sys.exit()
+        #     else:
+        #         print 'Result should be'
+        #         print result
+        #         shared_key_u2 = base64.b64decode(result[1])
+        #         sql = 'SELECT public_key from user_public_key where name = ?'
+        #         decode_username = str(username.decode('utf-8'))
+        #         c.execute(sql,(decode_username,))
+        #         res_u1 = str(c.fetchone()[0])
+        #         print 'File name is '
+        #         print res_u1
+        #         ec = CommonMethod()
+        #         # res_u1 = str(ec.get_public_key(res_u1))
+        #         print "Public key is: " 
+        #         print res_u1
+        #         c.execute(sql,(decode_usr,))
+        #         # print 'Type from database is:-----------------'
+        #         # print type(c.fetchone()[0])
+        #         res_u2 = (str(c.fetchone()[0])) 
+        #         print res_u2
+        #         # res_u2 = str(ec.get_public_key(res_u2))
+        #         # iv = os.urandom(16)
+        #         # cipher = Cipher(algorithms.AES(shared_key), modes.CTR(iv),backend = default_backend())
+        #         print 'Username is' + username
+        #         print shared_key_u2
+        #         print '---------------Here is the shared key -----------'
+        #         # res_u1 = res_u1.encode('utf-8')
+        #         # res_u2 = res_u2.encode('utf-8')
+        #         username = username.encode('utf-8')
+        #         # shared_key_u2= shared_key_u2.encode('utf-8')
+        #         print 'Sharedkey after encoding ----------------'
+        #         print shared_key_u2
+        #         print iv
+        #         encrypted_username = Encrypt.encrypt(username,shared_key_u2,iv)
+        #         # print 'Username encrypted with shared key of user2 is '
+        #         # print encrypted_username
+        #         encrypted_pku1 = Encrypt.encrypt(res_u1,shared_key_u2,iv) 
+        #         print '----------------Encrypted 1st pku1'
+        #         print encrypted_pku1
+        #         # print 'IV  is: '
+        #         # print iv
+        #         # print 'shared key is: '
+        #         # print shared_key_u2
+        #         encrypted_pku2 = Encrypt.encrypt(res_u2,shared_key,iv)
+        #         shared_encrypted_username = Encrypt.encrypt(encrypted_username,shared_key,iv)
+        #         print 'Username shared and encrypted with su1 is:'
+        #         print shared_encrypted_username 
+        #         shared_encrypted_pku1 = Encrypt.encrypt(encrypted_pku1,shared_key,iv)
+        #         rply.public_key_u1 = (base64.b64encode(shared_encrypted_pku1))#.encode('utf-8')
+        #         print 'Encoding in server -pku1'
+        #         print rply.public_key_u1
+        #         rply.public_key_u2 = (base64.b64encode(encrypted_pku2))#.encode('utf-8')
+        #         print 'Username that you want is :'
+        #         rply.username = (base64.b64encode(shared_encrypted_username))#.encode('utf-8')
+        #         print rply.username
+        #         print 'Executed'
+        #         conn.send(rply.SerializeToString())
+        # else:
+        #     print 'Nonces do not match'
+>>>>>>> 19b85d48288c23537b1e424f8d9ed6b3339b6bb3
 
 
 def start_connection(conn,addr):
@@ -333,6 +541,7 @@ def start_connection(conn,addr):
             list(user_name,conn,server_private_key,server_public_key)
             print "List is done"
 
+<<<<<<< HEAD
 if __name__ == '__main__':
     while 1:
         print "Listening again"
@@ -405,3 +614,60 @@ if __name__ == '__main__':
                 print "Looks like database doesnot have any record for this particular IP and port combination"
                 conn.close()
                 continue        
+=======
+while 1:
+    print "Listening again"
+    conn, addr = sock.accept()	# accept connection from client
+    print 'ADDR : '+ str(addr[1])
+    print 'CONN : '+ str(conn)
+    data = conn.recv(BUFFER_SIZE)
+    rqst.ParseFromString(data)  # parse message
+    # if rqst.type == pb_example_pb2.Request.TALK:           
+    #         process_talk(conn,rqst)
+    if rqst.type == pb_example_pb2.Request.POF_1:
+        sqlconn = sqlite3.connect("db.sqlite")
+        c = sqlconn.cursor()
+        print "Querying for first time"
+        sec = randint(1, 1000000)
+        print "The secret is "+str(sec)
+        print "The ip is "+addr[0]
+        print "The port is "+str(addr[1])
+        sec_hash = CommonMethod().generate_hash(addr[0]+str(addr[1])+str(sec))
+        sql = "INSERT into proof_of_work ('ip', 'port', 'sec') values (?, ?, ?)"
+        c.execute(sql,(addr[0],addr[1],sec))
+        sqlconn.commit()
+        sqlconn.close()
+        rply.hash = base64.b64encode(sec_hash)
+        rply.ip = addr[0]
+        rply.port = str(addr[1])
+        conn.send(rply.SerializeToString())
+        conn.close()
+        continue
+    if rqst.type == pb_example_pb2.Request.POF_2:    
+        sqlconn = sqlite3.connect("db.sqlite")
+        c = sqlconn.cursor()
+        ip = rqst.ip
+        port = rqst.port
+        print "The secret is "+rqst.payload
+        print "The ip is "+ip
+        print "The port is "+port
+        sql = "SELECT sec from proof_of_work WHERE ip = ? and port = ?"
+        sql_querry = c.execute(sql,(ip,port))
+        sec = sql_querry.fetchone()
+        sql = 'DELETE from proof_of_work WHERE ip = ? and port = ?'
+        c.execute(sql,(ip,port))
+        sqlconn.commit()
+        sqlconn.close()
+        print "Quering with sec"
+        print "The secret fetched from database is "+str(sec)
+        if rqst.payload == str(sec[0]):
+            rply.pof_success = True
+            conn.send(rply.SerializeToString())
+            start_new_thread(start_connection,(conn,addr))
+            print 'Connection address:', addr
+        else:
+            rply.pof_success = False
+            print "Secret returned is not correct"
+            conn.send(rply.SerializeToString())
+            
+>>>>>>> 19b85d48288c23537b1e424f8d9ed6b3339b6bb3
