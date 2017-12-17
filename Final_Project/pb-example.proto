@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+
+message Request     // Request message
+{
+
+	int32 version = 1;     // This protocol version number
+	
+	int32 seqn = 2;        // Sequence number
+
+	enum Type {            // Define Request types
+	SIGN = 0;
+	LIST = 1;
+	SEND = 3;
+	LOGOUT = 4;
+	TALK = 5;
+	POF_1 = 6;
+	POF_2 = 7;
+	SEND_1 = 8;
+	SEND_2 = 9;
+	}
+
+    Type type = 3;          // Type of this specific message 
+
+    string payload = 4;
+    string username=5;
+    string nonce_r1 = 6;
+    string nonce_r2 = 7;
+    string hash = 8;
+    string secret_key = 9;
+    string talk_to_user = 10;
+    string port = 11;
+    string ip = 12;
+}
+
+
+
+message Reply
+{
+	int32 version = 1;     // This protocol version number
+
+	int32 seqn = 2;        // Sequence number
+
+	enum Type {            // Define Request types
+	SIGN = 0;
+	LIST = 1;
+	SEND = 3;
+	LOGOUT = 4;
+	TALK = 5;
+	POF = 6;
+	SEND_1 = 7;
+	SEND_2 = 8;
+	SEND_3 = 9;
+
+}
+
+	Type type = 3;
+
+	string payload = 4;    // The reply payload
+	string nonce_r1 = 5;
+    string nonce_r2 = 6;
+    string hash = 7;
+    string secret_key = 8;
+    bool sign_in_success = 9;
+    string key_salt = 10;
+    bool logout_success = 11;
+    string public_key_u1 = 12;
+    string public_key_u2 = 13;
+    string username = 14;
+    bool pof_success = 15;
+    string ip = 16;
+    string port = 17;
+    int32 udp_port = 18;
+    string dh_component = 19;
+    string ticket_username = 20;
+    string signature = 21;
+    string dh_object = 22;
+    string message = 23;
+
+
+}
+
+
