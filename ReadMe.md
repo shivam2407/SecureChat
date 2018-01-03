@@ -43,3 +43,5 @@
 You can see our protocol Blueprint in **Blueprint.odp**
 
 Side Note: For LIST enter 1 and for LOGOUT enter 2 and than press enter. Implementation of Send command is incomplete and work in Progress.  
+
+**Don't Use this for academic uses as it can be easily caught by Professor and can result in Catostrophic implication for you**
