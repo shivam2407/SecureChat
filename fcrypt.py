@@ -206,7 +206,7 @@ class Decrypt:
 
     @classmethod
     def asyn_decrypt(cls, message,destination_private_key):  # Decrypting message using destination private_key
-        # try:
+        try:
             value = destination_private_key.decrypt(
                 message,
                 padding.OAEP(
@@ -214,11 +214,9 @@ class Decrypt:
                     algorithm=hashes.SHA256(),
                     label=None))
             return value
-            
-        # # except Exception as e:
-        #     print("Something went wrong with decrypting using RSA2048" )
-        #     print e
-        #     exit()
+        except Exception:
+            print("Something went wrong with decrypting using RSA2048")
+            exit()
 
     @classmethod
     def decrypt_message(cls, cipher_text, symmetric_key, iv):  # Decrypting message using symmetric key
