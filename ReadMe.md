@@ -42,4 +42,4 @@
 
 You can see our protocol Blueprint in **Blueprint.ppt**
 
-Side Note: For LIST enter 1 and or LOGOUT enter 2 and than press enter. Implementation of Send command is incomplete and work in Progress.  
+Side Note: For LIST enter 1 and for LOGOUT enter 2 and than press enter. Implementation of Send command is incomplete and work in Progress.  
