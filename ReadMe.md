@@ -17,8 +17,8 @@
 
 4. Now we need to make DB for that run below command.
 
-	```$ python make-db.py
-	   $ python insert-data.py```
+	```$ python make-db.py```
+	```$ python insert-data.py```
 
 5. Now we need to exract Google Protocol puffer to python file.
 
@@ -30,14 +30,15 @@
 
 7. Now you can run as many as client you want here. You might have to wait few seconds(10-20sec) as client will do proof of work before initiating the signin.
 
-	```$ python client.py -u USERNAME -pass PASSWORD -ip IP -p PORT -pr CLIENT PRIVATE KEY -pu CLIENT PUBLIC KEY -sk SOURCE PUBLIC KEY``` 
+	```$ python client.py -u USERNAME -pass PASSWORD -ip IP -p PORT -pr CLIENT PRIVATE KEY -pu CLIENT PUBLIC KEY -sk SERVER PUBLIC KEY``` 
 
 | Username | Password |
 | -------- | -------- |
 | shivam   | any      |
 | Prachi   | test     |
 | ashu     | ashu     |
-**CREDENTIALS TO be used for logging in.**
+
+**CREDENTIALS to be used for logging in.**
 
 You can see our protocol Blueprint in **Blueprint.ppt**
 
