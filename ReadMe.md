@@ -1,7 +1,7 @@
 **Technologies Used**
-> Python2.7
-> SQL
-> Google Protocol Buffer
+> Python2.7,
+> SQL,
+> Google Protocol Buffer.
 
 **Instruction to run:**
 
@@ -35,7 +35,7 @@
 | Username | Password |
 | -------- | -------- |
 | shivam   | any      |
-| Prachi   | test     |
+| prachi   | test     |
 | ashu     | ashu     |
 
 **CREDENTIALS to be used for logging in.**
