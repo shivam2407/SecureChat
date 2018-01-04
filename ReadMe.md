@@ -5,7 +5,7 @@
 
 **Instruction to run:**
 
-1. Make sure you have python2.7(Link for [Installation]("https://www.python.org/downloads/release/python-2714/").
+1. Make sure you have python2.7(Link for [Installation]("https://www.python.org/downloads/release/python-2714/")).
 
 2. if you don’t have virtualenv installed run bellow command.
 
